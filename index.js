@@ -22,6 +22,10 @@ app.get('/', (req, res) => {
 // routes api
 app.use("/api", apiRouter)
 
+app.all("*", (req, res, next) => {
+  res.status(404).json({ message: "Endpoint does not exist"})
+})
+
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`)
 })

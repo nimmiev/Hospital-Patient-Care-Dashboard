@@ -1,5 +1,6 @@
 import e from "express";
-import { patientLogin, patientProfile, patientSignup } from "../controllers/patientControllers.js";
+import { patientLogin, patientProfile, patientSignup, patientProfileUpdate, patientProfileDeactivate, patientLogout } from "../controllers/patientControllers.js";
+import { authPatient } from "../middlewares/authPatient.js";
 
 const router = e.Router();
 
@@ -8,15 +9,15 @@ router.post("/signup", patientSignup)
 //login
 router.put("/login", patientLogin)
 //get-profile
-router.get("/profile", patientProfile)
+router.get("/profile", authPatient, patientProfile)
 //edit-profile
-router.put("/update")
+router.put("/update", authPatient, patientProfileUpdate)
 //deactivate-profile
-router.put("/deactivate")
+router.put("/deactivate", authPatient, patientProfileDeactivate)
 //delete-profile
 router.delete("/delete")
 //logout
-router.get("/logout")
+router.get("/logout", authPatient, patientLogout)
 //forget-password
 //change-password
 //check-user

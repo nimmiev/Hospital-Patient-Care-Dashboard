@@ -73,7 +73,7 @@ export const doctorLogin = async(req, res, next) => {
         const {email,password} = req.body;
 
         //data vaildation
-        if(!email || !password || !role) {
+        if(!email || !password) {
             return res.status(400).json({message:"All fields required"})
         }
         // console.log(name,email,password,phone,role);
@@ -114,10 +114,93 @@ export const doctorLogin = async(req, res, next) => {
 export const doctorProfile = async(req, res, next) => {
     try {
         //doctorId
-        const doctorId =  'gbvujfv';
-        const doctorData = await User.findById(doctorId)
+        const doctorId =  req.doctor.id;
+        console.log(doctorId);
+        
+        const doctorsData = await User.findById(doctorId)
+        const doctorsData1 = await Doctor.findOne({ userId:doctorId })
+        // console.log(doctorsData1)
+
+        const doctorData = {
+            name: doctorsData.name,
+            email: doctorsData.email,
+            phone: doctorsData.phone,
+            role: doctorsData.role,
+            profilepic: doctorsData.profilepic,
+            medicalLicense: doctorsData1.medicalLicense,
+            qualification: doctorsData1.qualification,
+            experience: doctorsData1.experience,
+            department: doctorsData1.department,
+            schedule: doctorsData1.schedule
+        }
 
         res.json({data:doctorData, message:"Doctor profile fetched"})
+
+    } catch (error) {
+        res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+        console.log(error);
+    }
+}
+
+export const doctorProfileUpdate = async(req, res, next) => {
+    try {
+
+        //fetch exist profile data
+        const {name, email, password, phone, role, profilepic, medicalLicense, qualification, experience, department} = req.body;
+
+        //userId
+        const doctorId =  req.doctor.id;
+        // console.log(doctorId)
+        const doctorsData = await User.findByIdAndUpdate(doctorId, { name: name, email: email, password: password, phone: phone, role: role, profilepic: profilepic }, { new: true })
+
+        // console.log(doctorsData);
+        
+        const doctorsData1 = await Doctor.findOneAndUpdate({ userId:doctorId }, { medicalLicense: medicalLicense, qualification: qualification, experience: experience, department: department }, { new: true })
+        
+        const doctorData = {
+            name: doctorsData.name,
+            email: doctorsData.email,
+            phone: doctorsData.phone,
+            role: doctorsData.role,
+            profilepic: doctorsData.profilepic,
+            medicalLicense: doctorsData1.medicalLicense,
+            qualification: doctorsData1.qualification,
+            experience: doctorsData1.experience,
+            department: doctorsData1.department,
+            schedule: doctorsData1.schedule
+        }
+
+        res.json({data:doctorData, message:"Doctor profile Updated"})
+        
+    } catch (error) {
+        res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+        console.log(error);
+    }
+}
+
+export const doctorprofileDeactivate = async (req, res, next) => {
+    try {
+        //userId
+        const doctorId = req.doctor.id;
+        const usersData = await User.findByIdAndUpdate(doctorId, { isActive: false }, {new: true})
+
+        const userData = usersData.toObject();
+        delete userData.password;
+
+        res.json({data:userData, message:"User Deactivated"})
+        
+    } catch (error) {
+        res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+        console.log(error)
+    }
+}
+
+export const doctorLogout = async(req, res, next) => {
+    try {
+
+        res.clearCookie("token");
+
+        res.json({message:"Doctor Logout success"})
 
     } catch (error) {
         res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})

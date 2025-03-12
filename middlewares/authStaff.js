@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken"
 
-export const authUser = async(req, res, next) => {
+export const authStaff = async(req, res, next) => {
     try {
         //collect token from cookies
         const {token} = req.cookies
@@ -17,10 +17,10 @@ export const authUser = async(req, res, next) => {
             return res.status(401).json({message:"Access denied. No token provided."})
         }
 
-        req.user = decodedToken;
+        req.staff = decodedToken;
 
         //check role
-        if(req.user.role != 'Admin'){
+        if(req.staff.role != 'Staff'){
             return res.status(401).json({message:"Access denied. Insufficient permissions."})
         }
 

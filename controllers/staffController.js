@@ -71,7 +71,7 @@ export const staffLogin = async(req, res, next) => {
         const {email,password} = req.body;
 
         //data vaildation
-        if(!email || !password || !role) {
+        if(!email || !password) {
             return res.status(400).json({message:"All fields required"})
         }
         // console.log(name,email,password,phone,role);
@@ -112,10 +112,89 @@ export const staffLogin = async(req, res, next) => {
 export const staffProfile = async(req, res, next) => {
     try {
         //staffId
-        const staffId =  'gbvujfv';
-        const staffData = await User.findById(staffId)
+        const staffId =  req.staff.id;
+        // console.log(staffId);
+        
+        const staffsData = await User.findById(staffId)
+        const staffsData1 = await Staff.findOne({ userId:staffId })
+        // console.log(staffsData1)
+
+        const staffData = {
+            name: staffsData.name,
+            email: staffsData.email,
+            phone: staffsData.phone,
+            role: staffsData.role,
+            profilepic: staffsData.profilepic,
+            roleDescription: staffsData1.roleDescription,
+            assignedTask: staffsData1.assignedTask,
+            taskCount: staffsData1.taskCount
+        }
 
         res.json({data:staffData, message:"Staff profile fetched"})
+
+    } catch (error) {
+        res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+        console.log(error);
+    }
+}
+
+export const staffProfileUpdate = async(req, res, next) => {
+    try {
+
+        //fetch exist profile data
+        const {name, email, password, phone, role, profilepic, roleDescription, assignedTask, taskCount } = req.body;
+
+        //userId
+        const staffId =  req.staff.id;
+        // console.log(staffId)
+        const staffsData = await User.findByIdAndUpdate(staffId, { name: name, email: email, password: password, phone: phone, role: role, profilepic: profilepic }, { new: true })
+
+        // console.log(staffsData);
+        
+        const staffsData1 = await Staff.findOneAndUpdate({ userId:staffId }, { roleDescription:roleDescription, assignedTask:assignedTask, taskCount:taskCount }, { new: true })
+        
+        const staffData = {
+            name: staffsData.name,
+            email: staffsData.email,
+            phone: staffsData.phone,
+            role: staffsData.role,
+            profilepic: staffsData.profilepic,
+            roleDescription: staffsData1.roleDescription,
+            assignedTask: staffsData1.assignedTask,
+            taskCount: staffsData1.taskCount
+        }
+
+        res.json({data:staffData, message:"Staff profile Updated"})
+        
+    } catch (error) {
+        res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+        console.log(error);
+    }
+}
+
+export const staffProfiledeactivate = async (req, res, next) => {
+    try {
+        //userId
+        const staffId = req.staff.id;
+        const usersData = await User.findByIdAndUpdate(staffId, { isActive: false }, {new: true})
+
+        const userData = usersData.toObject();
+        delete userData.password;
+
+        res.json({data:userData, message:"Staff Deactivated"})
+        
+    } catch (error) {
+        res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+        console.log(error)
+    }
+}
+
+export const staffLogout = async(req, res, next) => {
+    try {
+
+        res.clearCookie("token");
+
+        res.json({message:"Staff Logout success"})
 
     } catch (error) {
         res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})

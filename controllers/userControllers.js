@@ -24,7 +24,7 @@ export const userSignup = async(req, res, next) => {
         
         //compare with confirm password
         if(password !== confirmPassword) {
-            return res.status(400).json({message: "Password do not match"})
+            return res.status(400).json({message: "Password do not same"})
         }
 
         //password hashing
@@ -80,9 +80,8 @@ export const userLogin = async(req, res, next) => {
             return res.status(401).json({message: "User account is not active"})
         }
 
-        
-        const userData = userExist.toObject(); // Convert Mongoose document to plain object
-        delete userData.password; // Remove password field
+        const userData = userExist.toObject();
+        delete userData.password;
 
         //generate token
         const token = generateToken(userExist._id, "Admin");
@@ -97,11 +96,67 @@ export const userLogin = async(req, res, next) => {
 
 export const userProfile = async(req, res, next) => {
     try {
+        // console.log("profile hitted");
+        
         //userId
-        const userId =  'gbvujfv';
-        const userData = await User.findById(userId)
+        const userId =  req.user.id;
+        const usersData = await User.findById(userId)
+
+        const userData = usersData.toObject(); // Convert Mongoose document to plain object
+        delete userData.password; // Remove password field
 
         res.json({data:userData, message:"User profile fetched"})
+
+    } catch (error) {
+        res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+        console.log(error);
+    }
+}
+
+export const userProfileUpdate = async(req, res, next) => {
+    try {
+
+        //fetch exist profile data
+        const {name,email,password,phone,role,profilepic} = req.body;
+
+        //userId
+        const userId =  req.user.id;
+        const usersData = await User.findByIdAndUpdate(userId, { name: name, email: email, password: password, phone: phone, role: role, profilepic: profilepic })
+
+        const userData = usersData.toObject();
+        delete userData.password;
+
+        res.json({data:userData, message:"User profile Updated"})
+        
+    } catch (error) {
+        res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+        console.log(error);
+    }
+}
+
+export const profileDeactivate = async (req, res, next) => {
+    try {
+        //userId
+        const userId = req.user.id;
+        const usersData = await User.findByIdAndUpdate(userId, { isActive: false })
+
+        const userData = usersData.toObject();
+        delete userData.password;
+
+        res.json({data:userData, message:"User Deactivated"})
+        
+    } catch (error) {
+        res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+        console.log(error)
+    }
+}
+
+export const userLogout = async(req, res, next) => {
+    try {
+
+        res.clearCookie("token");
+
+        res.json({message:"User Logout success"})
 
     } catch (error) {
         res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})

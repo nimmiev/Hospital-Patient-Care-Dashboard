@@ -1,5 +1,5 @@
 import e from "express";
-import { userSignup, userLogin, userProfile } from "../controllers/userControllers.js";
+import { userSignup, userLogin, userProfile, userProfileUpdate, userLogout, profileDeactivate } from "../controllers/userControllers.js";
 import { authUser } from "../middlewares/authUser.js"
 
 const router = e.Router();
@@ -11,13 +11,13 @@ router.put("/login", userLogin)
 //get-profile
 router.get("/profile", authUser, userProfile)
 //edit-profile
-router.put("/update")
+router.put("/profile-update", authUser, userProfileUpdate)
 //deactivate-profile
-router.put("/deactivate")
+router.put("/deactivate", authUser, profileDeactivate)
 //delete-profile
 router.delete("/delete")
 //logout
-router.get("/logout")
+router.get("/logout", authUser, userLogout)
 //forget-password
 //change-password
 //check-user

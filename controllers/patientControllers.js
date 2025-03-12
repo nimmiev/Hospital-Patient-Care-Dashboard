@@ -94,7 +94,7 @@ export const patientLogin = async(req, res, next) => {
         const {email,password} = req.body;
 
         //data vaildation
-        if(!email || !password || !role) {
+        if(!email || !password) {
             return res.status(400).json({message:"All fields required"})
         }
         // console.log(name,email,password,phone,role);
@@ -135,10 +135,130 @@ export const patientLogin = async(req, res, next) => {
 export const patientProfile = async(req, res, next) => {
     try {
         //patientId
-        const patientId =  'gbvujfv';
-        const patientData = await User.findById(patientId)
+        const patientId =  req.patient.id;
+        // console.log(patientId);
+        
+        const patientsData = await User.findById(patientId)
+        const patientsData1 = await Patient.findOne({ userId:patientId })
+        // console.log(PatientsData1)
+
+        const patientData = {
+            name: patientsData.name,
+            email: patientsData.email,
+            phone: patientsData.phone,
+            role: patientsData.role,
+            profilepic: patientsData.profilepic,
+            dateOfBirth: patientsData1.dateOfBirth,
+            gender: patientsData1.gender,
+            address: patientsData1.address,
+            emergencyContact: patientsData1.emergencyContact,
+            preExistingConditions: patientsData1.preExistingConditions,
+            allergies: patientsData1.allergies,
+            pastSurgeries: patientsData1.pastSurgeries,
+            medications: patientsData1.medications,
+            chronicDiseases: patientsData1.chronicDiseases,
+            bloodType: patientsData1.bloodType,
+            height: patientsData1.height,
+            weight: patientsData1.weight,
+            smoking: patientsData1.smoking,
+            alcoholConsumption: patientsData1.alcoholConsumption,
+            insurance: patientsData1.insurance,
+            familyHistory: patientsData1.familyHistory,
+            dietPreference: patientsData1.dietPreference,
+            physicalActivityLevel: patientsData1.physicalActivityLevel,
+            sleepPatterns: patientsData1.sleepPatterns,
+            emergencyPreferences: patientsData1.emergencyPreferences
+        }
 
         res.json({data:patientData, message:"Patient profile fetched"})
+
+    } catch (error) {
+        res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+        console.log(error);
+    }
+}
+
+export const patientProfileUpdate = async(req, res, next) => {
+    try {
+
+        //fetch exist profile data
+        const { name, email, password, phone, role, profilepic, dateOfBirth, gender, address,
+            emergencyContact, preExistingConditions, allergies, pastSurgeries, medications, chronicDiseases,
+            bloodType, height, weight, smoking, alcoholConsumption, insurance, familyHistory, dietPreference,
+            physicalActivityLevel, sleepPatterns, emergencyPreferences } = req.body;
+
+        //userId
+        const patientId =  req.patient.id;
+        // console.log(patientId)
+        const patientsData = await User.findByIdAndUpdate(patientId, { name: name, email: email, password: password, phone: phone, role: role, profilepic: profilepic }, { new: true })
+
+        // console.log(patientsData);
+        
+        const patientsData1 = await Patient.findOneAndUpdate({ userId:patientId }, { dateOfBirth:dateOfBirth, gender:gender, address:address,
+            emergencyContact:emergencyContact, preExistingConditions:preExistingConditions, allergies:allergies, pastSurgeries:pastSurgeries,
+            medications:medications, chronicDiseases:chronicDiseases, bloodType:bloodType, height:height, weight:weight, smoking:smoking,
+            alcoholConsumption:alcoholConsumption, insurance:insurance, familyHistory:familyHistory, dietPreference:dietPreference,
+            physicalActivityLevel:physicalActivityLevel, sleepPatterns:sleepPatterns, emergencyPreferences:emergencyPreferences }, { new: true })
+        
+        const patientData = {
+            name: patientsData.name,
+            email: patientsData.email,
+            phone: patientsData.phone,
+            role: patientsData.role,
+            profilepic: patientsData.profilepic,
+            dateOfBirth: patientsData1.dateOfBirth,
+            gender: patientsData1.gender,
+            address: patientsData1.address,
+            emergencyContact: patientsData1.emergencyContact,
+            preExistingConditions: patientsData1.preExistingConditions,
+            allergies: patientsData1.allergies,
+            pastSurgeries: patientsData1.pastSurgeries,
+            medications: patientsData1.medications,
+            chronicDiseases: patientsData1.chronicDiseases,
+            bloodType: patientsData1.bloodType,
+            height: patientsData1.height,
+            weight: patientsData1.weight,
+            smoking: patientsData1.smoking,
+            alcoholConsumption: patientsData1.alcoholConsumption,
+            insurance: patientsData1.insurance,
+            familyHistory: patientsData1.familyHistory,
+            dietPreference: patientsData1.dietPreference,
+            physicalActivityLevel: patientsData1.physicalActivityLevel,
+            sleepPatterns: patientsData1.sleepPatterns,
+            emergencyPreferences: patientsData1.emergencyPreferences
+        }
+
+        res.json({data:patientData, message:"Patient profile Updated"})
+        
+    } catch (error) {
+        res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+        console.log(error);
+    }
+}
+
+export const patientProfileDeactivate = async (req, res, next) => {
+    try {
+        //userId
+        const patientId = req.patient.id;
+        const patientsData = await User.findByIdAndUpdate(patientId, { isActive: false }, {new: true})
+
+        const patientData = patientsData.toObject();
+        delete patientData.password;
+
+        res.json({data:patientData, message:"Patient Deactivated"})
+        
+    } catch (error) {
+        res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+        console.log(error)
+    }
+}
+
+export const patientLogout = async(req, res, next) => {
+    try {
+
+        res.clearCookie("token");
+
+        res.json({message:"Patient Logout success"})
 
     } catch (error) {
         res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
