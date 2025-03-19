@@ -7,7 +7,8 @@ const DoctorSchema = new mongoose.Schema(
     qualification: { type: String, required: true },
     experience: { type: String, required: true },
     department: { type: String, required: true },
-    schedule: { type: Boolean, default: false } // to know scheduled atleast any one patient or not
+    schedule: { type: Boolean, default: false }, // to know scheduled atleast any one patient or not
+    approved: { type: Boolean, default:false }
   },
   {
     timestamps: true

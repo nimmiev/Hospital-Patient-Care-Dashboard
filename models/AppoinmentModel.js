@@ -4,7 +4,8 @@ const AppoinmentSchema = new mongoose.Schema(
   {
     patientId: { type: mongoose.Schema.Types.ObjectId, ref: 'Patient', required: true },
     doctorId: { type: mongoose.Schema.Types.ObjectId, ref: 'Doctor', required: true },
-    appointmentDate: { type: Date, required: true },
+    appointmentDate: { type: String, required: true },
+    appointmentTime: { type: String, required: true },
     status: { type: String, enum: ['Scheduled', 'Completed', 'Cancelled', 'Rescheduled'], default: 'Scheduled' },
     consultationNotes: { type: String }
   },
@@ -13,4 +14,4 @@ const AppoinmentSchema = new mongoose.Schema(
   }
 );
 
-export const Appoinments = mongoose.model("Appoinment", AppoinmentSchema);
+export const Appoinment = mongoose.model("Appoinment", AppoinmentSchema);

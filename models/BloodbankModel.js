@@ -7,7 +7,7 @@ const BloodbankSchema = new mongoose.Schema(
     hospitalName: { type: String, required: true },
     location: { type: String, required: true },
     contactNumber: { type: String, required: true },
-    available: { type: Boolean, default: false },
+    available: { type: Boolean, default: true },
   },
   {
     timestamps: true

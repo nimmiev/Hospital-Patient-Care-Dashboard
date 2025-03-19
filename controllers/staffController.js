@@ -1,5 +1,6 @@
 import { User } from "../models/userModel.js";
 import { Staff } from "../models/staffModel.js";
+import { Bloodbank } from "../models/BloodbankModel.js";
 import bcrypt from "bcrypt";
 import { generateToken } from "../utils/token.js";
 
@@ -92,6 +93,15 @@ export const staffLogin = async(req, res, next) => {
 
         if(!staffExist.isActive) {
             return res.status(401).json({message: "Staff account is not active"})
+        }
+
+        //fetch staff using id and check approved
+        const staffApprove = await Staff.findOne({userId: staffExist._id})
+
+        // console.log(staffApprove)
+        
+        if (!staffApprove || !staffApprove.approved) {
+            return res.status(403).json({ message: "Account is pending admin approval." });
         }
 
         
@@ -196,6 +206,83 @@ export const staffLogout = async(req, res, next) => {
 
         res.json({message:"Staff Logout success"})
 
+    } catch (error) {
+        res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+        console.log(error);
+    }
+}
+
+export const getTask = async(req, res, next) => {
+    try {
+        
+    } catch (error) {
+        res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+        console.log(error);
+    }
+}
+
+export const deleteTask = async(req, res, next) => {
+    try {
+        
+    } catch (error) {
+        res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+        console.log(error);
+    }
+}
+
+export const updateTask = async(req, res, next) => {
+    try {
+        
+    } catch (error) {
+        res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+        console.log(error);
+    }
+}
+
+export const countBloodbank = async(req, res, next) => {
+    try {
+        const bloodbankCount = await Bloodbank.countDocuments({ available: true})
+
+        res.status(200).json({count: bloodbankCount, message: "Bloodbank count"})
+
+    } catch (error) {
+        res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+        console.log(error);
+    }
+}
+
+export const getBloodbank = async(req, res, next) => {
+    try {
+         //fetch bloodbank
+         const bloodbank = await Bloodbank.find()
+         // console.log(bloodbank)
+ 
+         res.json({data:bloodbank, message:"All Bloodbanks List"})
+    } catch (error) {
+        res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+        console.log(error);
+    }
+}
+
+export const searchBloodbank = async(req, res, next) => {
+    try {
+        // bloodgroup
+        let bloodgroup = req.query.bloodgroup;
+
+        // check bloodgroup exists
+        if (bloodgroup) {
+            bloodgroup = bloodgroup.replace(/ /g, "+"); // Convert space to +
+            // bloodgroup = decodeURIComponent(bloodgroup);   // Decode URI
+        }
+
+        //create filter
+        let filter = bloodgroup ? { bloodGroup: bloodgroup } : {};
+       
+        // fetch bloodbanks
+        const bloodbanks = await Bloodbank.find(filter);
+
+        res.json({ data: bloodbanks, message: "Bloodbanks List" });
+        
     } catch (error) {
         res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
         console.log(error);

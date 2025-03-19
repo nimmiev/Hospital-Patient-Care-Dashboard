@@ -1,5 +1,7 @@
 import { User } from "../models/userModel.js";
 import { Patient } from "../models/PatientModel.js";
+import { Appoinment } from "../models/AppoinmentModel.js";
+import { Bloodbank } from "../models/BloodbankModel.js";
 import bcrypt from "bcrypt";
 import { generateToken } from "../utils/token.js";
 
@@ -122,7 +124,7 @@ export const patientLogin = async(req, res, next) => {
         delete patientData.password; // Remove password field
 
         //generate token
-        const token = generateToken(patientData._id, "Patient");
+        const token = generateToken(patientData._id, "Patient")
         res.cookie('token', token);
 
         res.json({data: patientData, message:"Login success"})
@@ -265,3 +267,129 @@ export const patientLogout = async(req, res, next) => {
         console.log(error);
     }
 }
+
+export const countAppoinment = async(req, res, next) => {
+    try {
+        //patientId
+        const patientId =  req.patient.id;
+
+        const appoinmentCount = await Appoinment.countDocuments({ patientId: patientId})
+
+        res.status(200).json({count: appoinmentCount, message: "Appoinment count"})
+
+    } catch (error) {
+        res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+        console.log(error);
+    }
+}
+
+export const appoinmentList = async(req, res, next) => {
+    try {
+
+        //patientId
+        const patientId =  req.patient.id;
+
+        const appoinment = await Appoinment.find({ patientId: patientId})
+
+        res.status(200).json({data: appoinment, message: "Appointment List"})
+        
+    } catch (error) {
+        res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+        console.log(error);
+    }
+}
+
+export const requestAppoinment = async(req, res, next) => {
+    try {
+        //patientId
+        const patientId =  req.patient.id;
+        // console.log(patientId);
+        
+        //update schedule field value
+        const patientsData = await Patient.findOneAndUpdate({ userId: patientId },{ scheduled: true }, {new: true})
+        console.log(patientsData);
+
+        res.json({data: patientsData, message: "Appoinment requested"})
+
+    } catch (error) {
+        res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+        console.log(error);
+    }
+}
+
+export const cancelAppoinment = async(req, res, next) => {
+    try {
+        //fetch appoinmentId
+        const { appoinmentId } = req.params;
+        // console.log(appoinmentId)
+        //validate appoinmentId
+        if(!appoinmentId) {
+            return res.status(400).json({message: "Appoinment id required"})
+        }
+
+        //cancell data
+        const AppoinmentData = await Appoinment.findByIdAndUpdate( appoinmentId, { status: 'Cancelled' }, { new: true})
+        
+        if(AppoinmentData){
+            res.json({message:"Appoinment Cancelled"})
+        }
+
+    } catch (error) {
+        res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+        console.log(error);
+    }
+}
+
+export const countBloodbank = async(req, res, next) => {
+    try {
+        const bloodbankCount = await Bloodbank.countDocuments({ available: true})
+
+        res.status(200).json({count: bloodbankCount, message: "Bloodbank count"})
+
+    } catch (error) {
+        res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+        console.log(error);
+    }
+}
+
+export const getBloodbank = async(req, res, next) => {
+    try {
+         //fetch bloodbank
+         const bloodbank = await Bloodbank.find()
+         // console.log(bloodbank)
+ 
+         res.json({data:bloodbank, message:"All Bloodbanks List"})
+    } catch (error) {
+        res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+        console.log(error);
+    }
+}
+
+export const searchBloodbank = async(req, res, next) => {
+    try {
+        // bloodgroup
+        let bloodgroup = req.query.bloodgroup;
+
+        // check bloodgroup exists
+        if (bloodgroup) {
+            bloodgroup = bloodgroup.replace(/ /g, "+"); // Convert space to +
+            // bloodgroup = decodeURIComponent(bloodgroup);   // Decode URI
+        }
+
+        //create filter
+        let filter = bloodgroup ? { bloodGroup: bloodgroup } : {};
+       
+        // fetch bloodbanks
+        const bloodbanks = await Bloodbank.find(filter);
+
+        res.json({ data: bloodbanks, message: "Bloodbanks List" });
+        
+    } catch (error) {
+        res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+        console.log(error);
+    }
+}
+
+
+
+

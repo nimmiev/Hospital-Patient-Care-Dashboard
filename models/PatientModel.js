@@ -45,7 +45,8 @@ const PatientSchema = new mongoose.Schema(
       preferredHospital: { type: String },
       primaryCarePhysician: { type: String },
       doNotResuscitate: { type: Boolean, default: false } //(if applicable)
-    }
+    },
+    scheduled: { type:Boolean, default: false}
   },
   {
     timestamps: true

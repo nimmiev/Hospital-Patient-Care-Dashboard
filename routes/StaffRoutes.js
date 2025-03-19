@@ -1,5 +1,7 @@
 import e from "express";
-import { staffLogin, staffProfile, staffSignup, staffProfileUpdate, staffProfiledeactivate, staffLogout } from "../controllers/staffController.js";
+import { staffLogin, staffProfile, staffSignup, staffProfileUpdate, staffProfiledeactivate, staffLogout,
+    getTask, updateTask, countBloodbank, getBloodbank, searchBloodbank
+ } from "../controllers/staffController.js";
 import { authStaff } from "../middlewares/authStaff.js";
 
 const router = e.Router();
@@ -21,5 +23,17 @@ router.get("/logout", authStaff, staffLogout)
 //forget-password
 //change-password
 //check-user
+
+
+//view task
+router.get("/task", authStaff, getTask)
+//complete-task
+router.get("/update-task", authStaff, updateTask)
+//bloodbank count
+router.get("/bloodbank-count", authStaff, countBloodbank)
+//fetch bloodbanks
+router.get("/bloodbank", authStaff, getBloodbank)
+//seacr bloodbanks
+router.get("/search-bloodbank", authStaff, searchBloodbank)
 
 export {router as staffRouter}

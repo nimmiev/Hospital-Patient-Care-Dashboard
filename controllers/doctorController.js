@@ -1,7 +1,10 @@
 import { User } from "../models/userModel.js";
 import { Doctor } from "../models/DoctorModel.js";
+import { Appoinment } from "../models/AppoinmentModel.js";
 import bcrypt from "bcrypt";
 import { generateToken } from "../utils/token.js";
+import { Patient } from "../models/PatientModel.js";
+import mongoose from "mongoose";
 
 export const doctorSignup = async(req, res, next) => {
     try{
@@ -96,6 +99,15 @@ export const doctorLogin = async(req, res, next) => {
             return res.status(401).json({message: "Doctor account is not active"})
         }
 
+        //fetch doctor using id and check approved
+        const doctorApprove = await Doctor.findOne({userId: doctorExist._id})
+
+        // console.log(doctorApprove)
+        
+        if (!doctorApprove || !doctorApprove.approved) {
+            return res.status(403).json({ message: "Account is pending admin approval." });
+        }
+
         
         const doctorData = doctorExist.toObject(); // Convert Mongoose document to plain object
         delete doctorData.password; // Remove password field
@@ -115,7 +127,7 @@ export const doctorProfile = async(req, res, next) => {
     try {
         //doctorId
         const doctorId =  req.doctor.id;
-        console.log(doctorId);
+        // console.log(doctorId);
         
         const doctorsData = await User.findById(doctorId)
         const doctorsData1 = await Doctor.findOne({ userId:doctorId })
@@ -201,6 +213,164 @@ export const doctorLogout = async(req, res, next) => {
         res.clearCookie("token");
 
         res.json({message:"Doctor Logout success"})
+
+    } catch (error) {
+        res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+        console.log(error);
+    }
+}
+
+export const countAppoinment = async(req, res, next) => {
+    try {
+        //doctorId
+        const doctorId =  req.doctor.id;
+
+        const appoinmentCount = await Appoinment.countDocuments({ doctorId: doctorId})
+
+        res.status(200).json({count: appoinmentCount, message: "Appoinment count"})
+
+    } catch (error) {
+        res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+        console.log(error);
+    }
+}
+
+export const getPatient = async(req, res, next) => {
+    try {
+        //doctorId
+        const doctorId = req.doctor.id
+        //fetch doctor appoinments
+        const appointments = await Appoinment.find({ doctorId })
+        // console.log(appointments);
+        if (!appointments.length) {
+            return res.status(404).json({ message: "No patients found for this doctor" })
+        }
+        
+        // Extract patientId
+        const patientIds = [...new Set(appointments.map(app => app.patientId.toString()))]
+
+        const patients = await User.find({ _id: { $in: patientIds } }, "name email phone role profilepic")
+
+        res.json({ data: patients, message: "Patients List" })
+
+    } catch (error) {
+        res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+        console.log(error);
+    }
+}
+
+export const getPatientDetails = async(req, res, next) => {
+    try {
+        //fetch patientId and doctorId
+        const { patientId } = req.params
+        const doctorId = req.doctor.id
+
+        //validate patientId
+        if (!patientId) {
+            return res.status(400).json({ message: "Patient ID is required" })
+        }
+
+        //check patient exist or not
+        const appointmentExists = await Appoinment.findOne({ doctorId, patientId })
+
+        if (!appointmentExists) {
+            return res.status(403).json({ message: "Unauthorized: This patient is not associated with this doctor" })
+        }
+
+        // console.log(appointmentExists)
+        //fetch corresponding patient details
+        const patientDetails = await Patient.findOne({ userId: patientId });
+        console.log(patientDetails)
+        if (!patientDetails) {
+            return res.status(404).json({ message: "Patient not found" });
+        }
+
+        res.json({ data: patientDetails, message: "Patient details fetched" });
+
+        // const patientData = {
+        //     name: patientsData.name,
+        //     email: patientsData.email,
+        //     phone: patientsData.phone,
+        //     role: patientsData.role,
+        //     profilepic: patientsData.profilepic,
+        //     dateOfBirth: patientsData1.dateOfBirth,
+        //     gender: patientsData1.gender,
+        //     address: patientsData1.address,
+        //     emergencyContact: patientsData1.emergencyContact,
+        //     preExistingConditions: patientsData1.preExistingConditions,
+        //     allergies: patientsData1.allergies,
+        //     pastSurgeries: patientsData1.pastSurgeries,
+        //     medications: patientsData1.medications,
+        //     chronicDiseases: patientsData1.chronicDiseases,
+        //     bloodType: patientsData1.bloodType,
+        //     height: patientsData1.height,
+        //     weight: patientsData1.weight,
+        //     smoking: patientsData1.smoking,
+        //     alcoholConsumption: patientsData1.alcoholConsumption,
+        //     insurance: patientsData1.insurance,
+        //     familyHistory: patientsData1.familyHistory,
+        //     dietPreference: patientsData1.dietPreference,
+        //     physicalActivityLevel: patientsData1.physicalActivityLevel,
+        //     sleepPatterns: patientsData1.sleepPatterns,
+        //     emergencyPreferences: patientsData1.emergencyPreferences
+        // }
+
+        // res.json({data:patientData, message:"Patient details fetched"})
+    } catch (error) {
+        res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+        console.log(error);
+    }
+}
+
+export const appoinmentList = async(req, res, next) => {
+    try {
+
+        //doctorId
+        const doctorId =  req.doctor.id;
+
+        const appoinment = await Appoinment.find({ doctorId: doctorId})
+
+        res.status(200).json({data: appoinment, message: "Appointment List"})
+        
+    } catch (error) {
+        res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+        console.log(error);
+    }
+}
+
+export const addNotes = async(req, res, next) => {
+    try {
+        //fetch appoinmentId
+        const { appoinmentId } = req.params;
+        const { consultationNotes } = req.body;
+
+        //add notes and status change
+        const doctorsData = await Appoinment.findByIdAndUpdate(appoinmentId, { status: 'Completed', consultationNotes: consultationNotes}, { new: true })
+
+        res.json({ data: doctorsData, message: 'Notes added' })
+        
+    } catch (error) {
+        res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+        console.log(error);
+    }
+}
+
+export const cancelAppoinment = async(req, res, next) => {
+    try {
+        //fetch appoinmentId
+        const { appoinmentId } = req.params;
+        // console.log(appoinmentId)
+        //validate appoinmentId
+        if(!appoinmentId) {
+            return res.status(400).json({message: "Appoinment id required"})
+        }
+
+        //cancell data
+        const AppoinmentData = await Appoinment.findByIdAndUpdate( appoinmentId, { status: 'Cancelled' }, { new: true})
+        
+        if(AppoinmentData){
+            res.json({message:"Appoinment Cancelled"})
+        }
 
     } catch (error) {
         res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
