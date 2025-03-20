@@ -1,8 +1,12 @@
 import { User } from "../models/userModel.js";
 import { Staff } from "../models/staffModel.js";
 import { Bloodbank } from "../models/BloodbankModel.js";
+import { Task } from "../models/TaskModel.js";
+import { Patient } from "../models/PatientModel.js";
+import { Appoinment } from "../models/AppoinmentModel.js";
 import bcrypt from "bcrypt";
 import { generateToken } from "../utils/token.js";
+import mongoose from "mongoose";
 
 export const staffSignup = async(req, res, next) => {
     try{
@@ -214,16 +218,42 @@ export const staffLogout = async(req, res, next) => {
 
 export const getTask = async(req, res, next) => {
     try {
-        
+        //staffId
+        const staffId = req.staff.id;
+
+        //staff details displayed
+        const tasks = await Task.find({staffId: staffId});
+        //fetch staff name and email
+        const updatedTasks = await Promise.all(
+            tasks.map(async (task) => {
+                const user = await User.findById(staffId, "name email"); // Get name and email
+                return {
+                    _id: task._id,
+                    taskDescription: task.taskDescription,
+                    status: task.status,
+                    createdAt: task.createdAt,
+                    updatedAt: task.updatedAt,
+                    staffDetails: user ? { name: user.name, email: user.email } : null, // Attach user details
+                };
+            })
+        );
+
+        res.status(200).json({ data: updatedTasks });        
     } catch (error) {
         res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
         console.log(error);
     }
 }
 
-export const deleteTask = async(req, res, next) => {
+export const completedTask = async(req, res, next) => {
     try {
-        
+        //staffId
+        const staffId =  req.staff.id;
+
+        const appoinmentCount = await Task.countDocuments({ staffId: staffId, status: "Completed"})
+
+        res.status(200).json({count: appoinmentCount, message: "Completed Task count"})
+
     } catch (error) {
         res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
         console.log(error);
@@ -232,7 +262,22 @@ export const deleteTask = async(req, res, next) => {
 
 export const updateTask = async(req, res, next) => {
     try {
+        // taskId
+        const { taskId } = req.params;
+        const { status } = req.body;
         
+        //validate taskId
+        if (!mongoose.Types.ObjectId.isValid(taskId)) {
+            return res.status(400).json({ message: "Invalid Task ID format" });
+        }
+
+        // Update task details
+        const task = await Task.findByIdAndUpdate(taskId, { status }, { new: true })
+        if (!task) {
+            return res.status(404).json({ message: "Task not found" })
+        }
+        
+        res.status(200).json({ message: "Task updated", task })
     } catch (error) {
         res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
         console.log(error);
@@ -283,6 +328,85 @@ export const searchBloodbank = async(req, res, next) => {
 
         res.json({ data: bloodbanks, message: "Bloodbanks List" });
         
+    } catch (error) {
+        res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+        console.log(error);
+    }
+}
+
+export const addPatient = async(req, res, next) => {
+    try {
+        // console.log("signup hitted");
+        
+            //collect patient data
+            const {name, email, password, confirmPassword, phone, dateOfBirth, gender, address,
+                emergencyContact, bloodType, height, weight} = req.body;
+    
+            //data vaildation
+            if(!name || !email || !password || !confirmPassword || !phone || !dateOfBirth || !gender || !address || !emergencyContact ) {
+                return res.status(400).json({message:"All fields required"})
+            }
+            // console.log(name,email,password,phone,role);
+    
+            //check patient already exist
+            const patientExist = await User.findOne({email:email})
+    
+            if(patientExist) {
+                return res.status(400).json({message:"Patient Already Exist"})
+            }
+            
+            //compare with confirm password
+            if(password !== confirmPassword) {
+                return res.status(400).json({message: "Password do not match"})
+            }
+    
+            //password hashing
+            const hashPassword = bcrypt.hashSync(password, 10);
+    
+            //save data to User modal in DB
+            const newPatient = new User({ name, email, password: hashPassword, phone, role: "Patient"})
+            await newPatient.save()
+    
+            // Save patient-specific data to Patient model in DB
+            const newPatient1 = new Patient({ userId: newPatient._id, dateOfBirth, gender, address, emergencyContact,
+                bloodType, height, weight });
+            await newPatient1.save();
+    
+            //generate token using Id and Role
+            const token = generateToken(newPatient._id, "Patient");
+            res.cookie('token', token);
+    
+            // remove hash password to frontend
+            const dataPatient = {
+                name: newPatient.name,
+                email: newPatient.email,
+                phone: newPatient.phone,
+                role: newPatient.role,
+                dateOfBirth: newPatient1.dateOfBirth,
+                gender: newPatient1.gender,
+                address: newPatient1.address,
+                emergencyContact: newPatient1.emergencyContact,
+                bloodType: newPatient1.bloodType,
+                height: newPatient1.height,
+                weight: newPatient1.weight
+            };
+            
+            res.json({data: dataPatient, message:"Patient signup success"})
+            
+    } catch (error) {
+        res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+        console.log(error);
+    }
+}
+
+export const getAppoinment = async(req, res, next) => {
+    try {
+        //fetch appoinments
+        const appoinment = await Appoinment.find()
+        // console.log(appoinment)
+
+        res.json({data:appoinment, message:"All Appoinment List"})
+
     } catch (error) {
         res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
         console.log(error);

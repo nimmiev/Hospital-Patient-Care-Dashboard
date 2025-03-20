@@ -5,7 +5,7 @@ import { userSignup, userLogin, userProfile, userProfileUpdate, userLogout, prof
     countStaff, getStaff, getStaffDetails, deleteStaff, staffApproval,
     countAppoinment, getAppoinment, addAppoinment, updateAppoinment, cancelAppoinment,
     countBloodbank, getBloodbank, addBloodbank, updateBloodbank, deleteBloodbank,
-    getTask, addTask, deleteTask
+    getTask, editTask, addTask, deleteTask
  } from "../controllers/userControllers.js";
 import { authUser } from "../middlewares/authUser.js"
 
@@ -88,8 +88,10 @@ router.delete("/delete-bloodbank/:bloodbankId", authUser, deleteBloodbank)
 router.get("/task", authUser, getTask)
 //add Task
 router.post("/add-task", authUser, addTask)
+//edit Task
+router.post("/edit-task/:taskId", authUser, editTask)
 //delete Task
-router.delete("/delete-task", authUser, deleteTask)
+router.delete("/delete-task/:taskId", authUser, deleteTask)
 
 
 export { router as userRouter }

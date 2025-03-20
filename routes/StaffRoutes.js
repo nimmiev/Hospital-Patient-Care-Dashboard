@@ -1,6 +1,6 @@
 import e from "express";
 import { staffLogin, staffProfile, staffSignup, staffProfileUpdate, staffProfiledeactivate, staffLogout,
-    getTask, updateTask, countBloodbank, getBloodbank, searchBloodbank
+    getTask, completedTask, updateTask, countBloodbank, getBloodbank, searchBloodbank, addPatient, getAppoinment
  } from "../controllers/staffController.js";
 import { authStaff } from "../middlewares/authStaff.js";
 
@@ -24,16 +24,22 @@ router.get("/logout", authStaff, staffLogout)
 //change-password
 //check-user
 
-
+//count completed task
+router.get("/completedtaskCount", authStaff, completedTask)
 //view task
 router.get("/task", authStaff, getTask)
-//complete-task
-router.get("/update-task", authStaff, updateTask)
+//update completed-task
+router.put("/update-task/:taskId", authStaff, updateTask)
 //bloodbank count
 router.get("/bloodbank-count", authStaff, countBloodbank)
 //fetch bloodbanks
 router.get("/bloodbank", authStaff, getBloodbank)
 //seacr bloodbanks
 router.get("/search-bloodbank", authStaff, searchBloodbank)
+//add patient
+router.post("/addPatient", authStaff, addPatient)
+//fetch appoinment
+router.get("/appoinment", authStaff, getAppoinment)
+
 
 export {router as staffRouter}

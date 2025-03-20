@@ -6,6 +6,7 @@ import { Patient } from "../models/PatientModel.js";
 import { Appoinment } from '../models/AppoinmentModel.js';
 import { Bloodbank } from '../models/BloodbankModel.js';
 import { Staff } from "../models/staffModel.js";
+import { Task } from "../models/TaskModel.js";
 import mongoose from "mongoose";
 
 export const userSignup = async(req, res, next) => {
@@ -773,7 +774,25 @@ export const countBloodbank = async(req, res, next) => {
 
 export const getTask = async(req, res, next) => {
     try {
-        
+        //staff details displayed
+        const tasks = await Task.find();
+
+        //fetch staff name and email
+        const updatedTasks = await Promise.all(
+            tasks.map(async (task) => {
+                const user = await User.findById(task.staffId, "name email"); // Get name and email
+                return {
+                    _id: task._id,
+                    taskDescription: task.taskDescription,
+                    status: task.status,
+                    createdAt: task.createdAt,
+                    updatedAt: task.updatedAt,
+                    staffDetails: user ? { name: user.name, email: user.email } : null, // Attach user details
+                };
+            })
+        );
+
+        res.status(200).json({ data: updatedTasks });        
     } catch (error) {
         res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
         console.log(error);
@@ -782,6 +801,25 @@ export const getTask = async(req, res, next) => {
 
 export const addTask = async(req, res, next) => {
     try {
+        // fetch data
+        const { staffId, taskDescription } = req.body
+
+        // check staff exist
+        const staff = await Staff.findOne({userId: staffId});
+        if (!staff) {
+            return res.status(404).json({ message: "Staff not found" });
+        }
+
+        // create new task
+        const task = new Task({ staffId, taskDescription });
+        await task.save();
+
+        // update assigned task and count
+        staff.assignedTask = true;
+        staff.taskCount += 1;
+        await staff.save();
+
+        res.status(201).json({ message: "Task added", data: task });
         
     } catch (error) {
         res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
@@ -791,14 +829,53 @@ export const addTask = async(req, res, next) => {
 
 export const deleteTask = async(req, res, next) => {
     try {
+        // fetch taskId
+        const { taskId } = req.params;
         
+        //delete task
+        const task = await Task.findByIdAndDelete(taskId);
+        if (!task) {
+            return res.status(404).json({ message: "Task not found" });
+        }
+
+        // Update staff assignedTask and taskCount
+        const staff = await Staff.findById(task.staffId);
+        if (staff) {
+            staff.taskCount -= 1;
+            if (staff.taskCount === 0) {
+                staff.assignedTask = false;
+            }
+            await staff.save()
+        }
+        
+        res.status(200).json({ message: "Task deleted" })
+
     } catch (error) {
         res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
         console.log(error);
     }
 }
 
-// export const deleteTask = async(req, res, next) => {
+export const editTask = async(req, res, next) => {
+    try {
+        // fetch taskId
+        const { taskId } = req.params;
+        const { taskDescription, status } = req.body;
+        
+        // Update task details
+        const task = await Task.findByIdAndUpdate(taskId, { taskDescription, status }, { new: true })
+        if (!task) {
+            return res.status(404).json({ message: "Task not found" })
+        }
+        
+        res.status(200).json({ message: "Task updated", task })
+    } catch (error) {
+        res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+        console.log(error);
+    }
+}
+
+// export const editTask = async(req, res, next) => {
 //     try {
         
 //     } catch (error) {
