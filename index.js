@@ -18,16 +18,23 @@ connectDB();
 const allowlist = process.env.ALLOW_LIST ? process.env.ALLOW_LIST.split(",") : ["https://hospital-patient-care-dashboard-frontend.vercel.app"];
 console.log("Allowed Origins:", allowlist);
 
+// const corsOptions = {
+//   origin: (origin, callback) => {
+//     if (!origin || allowlist.includes(origin)) {
+//       callback(null, true);
+//     } else {
+//       console.error(`Blocked by CORS: ${origin}`);
+//       callback(new Error("Not allowed by CORS"));
+//     }
+//   },
+//   credentials: true,
+// };
+
 const corsOptions = {
-  origin: (origin, callback) => {
-    if (!origin || allowlist.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.error(`Blocked by CORS: ${origin}`);
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
+  origin: allowlist, // Directly use the allowlist array
   credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"], // Allow necessary HTTP methods
+  allowedHeaders: ["Content-Type", "Authorization"], // Allow required headers
 };
 
 app.use(cors(corsOptions));
