@@ -32,7 +32,7 @@ const UserSchema = new mongoose.Schema(
     },
     profilepic: {
       type: String,
-      default: "https://image.png"
+      default: "https://img.freepik.com/free-vector/user-circles-set_78370-4704.jpg?t=st=1742623449~exp=1742627049~hmac=3bb4b47fbe4a2fe8f6a3b06ae7708f672a14c262d9290750d8205209a9252ed9&w=740"
     },
     isActive: {
       type: Boolean,

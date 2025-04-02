@@ -41,7 +41,7 @@ export const staffSignup = async(req, res, next) => {
         await newStaff.save()
 
         // Save staff-specific data to Staff model in DB
-        const newStaff1 = new Staff({ userId: newStaff._id, roleDescription, assignedTask, taskCount });
+        const newStaff1 = new Staff({ userId: newStaff._id, roleDescription, assignedTask, taskCount});
         await newStaff1.save();
 
         //generate token using Id and Role

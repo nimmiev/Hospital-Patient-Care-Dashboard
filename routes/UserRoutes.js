@@ -5,26 +5,28 @@ import { userSignup, userLogin, userProfile, userProfileUpdate, userLogout, prof
     countStaff, getStaff, getStaffDetails, deleteStaff, staffApproval,
     countAppoinment, getAppoinment, addAppoinment, updateAppoinment, cancelAppoinment,
     countBloodbank, getBloodbank, addBloodbank, updateBloodbank, deleteBloodbank,
-    getTask, editTask, addTask, deleteTask
+    getTask, editTask, addTask, deleteTask, editInstruction
  } from "../controllers/userControllers.js";
 import { authUser } from "../middlewares/authUser.js"
+import { upload } from "../middlewares/multer.js";
 
 const router = e.Router();
 
 //signup
-router.post("/signup", userSignup)
+router.post("/signup", upload.single("profilepic"), userSignup)
 //login
 router.put("/login", userLogin)
 //get-profile
 router.get("/profile", authUser, userProfile)
 //edit-profile
-router.put("/profile-update", authUser, userProfileUpdate)
+// router.put("/profile-update", authUser, userProfileUpdate)
+router.put("/profile-update", authUser, upload.single("profilepic"), userProfileUpdate);
 //deactivate-profile
 router.put("/deactivate", authUser, profileDeactivate)
 //delete-profile
 router.delete("/delete")
 //logout
-router.get("/logout", authUser, userLogout)
+router.put("/logout", authUser, userLogout)
 //forget-password
 //change-password
 //check-user
@@ -92,6 +94,8 @@ router.post("/add-task", authUser, addTask)
 router.post("/edit-task/:taskId", authUser, editTask)
 //delete Task
 router.delete("/delete-task/:taskId", authUser, deleteTask)
-
+// ----------------------------------General Instruction Management-----------------------------------
+//edit instruction
+router.post("/editInstructions/:taskId", authUser, editInstruction)
 
 export { router as userRouter }

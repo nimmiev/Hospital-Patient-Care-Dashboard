@@ -7,6 +7,7 @@ import { Appoinment } from '../models/AppoinmentModel.js';
 import { Bloodbank } from '../models/BloodbankModel.js';
 import { Staff } from "../models/staffModel.js";
 import { Task } from "../models/TaskModel.js";
+import { cloudinaryInstance } from "../config/cloudinary.js";
 import mongoose from "mongoose";
 
 export const userSignup = async(req, res, next) => {
@@ -14,7 +15,12 @@ export const userSignup = async(req, res, next) => {
         // console.log("signup hitted");
 
         //collect user data
-        const {name,email,password,confirmPassword,phone,role,profilepic} = req.body;
+        const {name,email,password,confirmPassword,phone,role} = req.body;
+
+        // console.log(req.file)
+        const cloudinaryRes = await cloudinaryInstance.uploader.upload(req.file.path)
+        // console.log(cloudinaryRes);
+        
 
         //data vaildation
         if(!name || !email || !password || !confirmPassword || !phone) {
@@ -38,7 +44,7 @@ export const userSignup = async(req, res, next) => {
         const hashPassword = bcrypt.hashSync(password, 10);
 
         //save to db table
-        const newUser = new User({ name, email, password: hashPassword, phone, role, profilepic})
+        const newUser = new User({ name, email, password: hashPassword, phone, role, profilepic: cloudinaryRes.url })
         await newUser.save()
 
         //generate token using Id and Role
@@ -46,7 +52,7 @@ export const userSignup = async(req, res, next) => {
         res.cookie('token', token);
 
         // remove hash password to frontend
-        const dataUser = new User({ name, email, phone, role, profilepic})
+        const dataUser = new User({ name, email, phone, role, profilepic: cloudinaryRes.url })
         
         res.json({data: dataUser, message:"signup success"})
 
@@ -124,26 +130,88 @@ export const userProfile = async(req, res, next) => {
     }
 }
 
-export const userProfileUpdate = async(req, res, next) => {
-    try {
+// export const userProfileUpdate = async(req, res, next) => {
+//     try {
 
-        //fetch exist profile data
-        const {name,email,password,phone,role,profilepic} = req.body;
+//         //fetch exist profile data
+//         const {name,email,password,phone} = req.body;
 
-        //userId
-        const userId =  req.user.id;
-        const usersData = await User.findByIdAndUpdate(userId, { name: name, email: email, password: password, phone: phone, role: role, profilepic: profilepic })
-
-        const userData = usersData.toObject();
-        delete userData.password;
-
-        res.json({data:userData, message:"User profile Updated"})
+//         const cloudinaryRes = await cloudinaryInstance.uploader.upload(req.file.path)
         
+//         //userId
+//         const userId =  req.user.id;
+//         const usersData = await User.findByIdAndUpdate(userId, { name: name, email: email, password: password, phone: phone, profilepic: cloudinaryRes })
+
+//         const userData = usersData.toObject();
+//         delete userData.password;
+
+//         res.json({data:userData, message:"User profile Updated"})
+        
+//     } catch (error) {
+//         res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+//         console.log(error);
+//     }
+// }
+
+export const userProfileUpdate = async (req, res) => {
+    try {
+        const { name, email, password, phone } = req.body;
+        const userId = req.user.id;
+
+        let profilepic = null;
+        
+        if (req.file) { 
+            const cloudinaryRes = await cloudinaryInstance.uploader.upload_stream(
+                { resource_type: "auto" },
+                async (error, result) => {
+                    if (error) {
+                        console.error("Cloudinary Upload Error:", error);
+                        return res.status(500).json({ message: "Image upload failed" });
+                    }
+                    profilepic = result.secure_url;
+
+                    // Update user profile in database
+                    const updatedUser = await User.findByIdAndUpdate(
+                        userId, 
+                        { name, email, password, phone, profilepic }, 
+                        { new: true }
+                    );
+
+                    if (!updatedUser) {
+                        return res.status(404).json({ message: "User not found" });
+                    }
+
+                    const userData = updatedUser.toObject();
+                    delete userData.password; 
+
+                    res.json({ data: userData, message: "User profile updated successfully" });
+                }
+            );
+
+            cloudinaryRes.end(req.file.buffer);
+        } else {
+            // Update user profile without image
+            const updatedUser = await User.findByIdAndUpdate(
+                userId, 
+                { name, email, password, phone }, 
+                { new: true }
+            );
+
+            if (!updatedUser) {
+                return res.status(404).json({ message: "User not found" });
+            }
+
+            const userData = updatedUser.toObject();
+            delete userData.password;
+
+            res.json({ data: userData, message: "User profile updated successfully" });
+        }
+
     } catch (error) {
-        res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
-        console.log(error);
+        console.error(error);
+        res.status(error.statusCode || 500).json({ message: error.message || "Internal Server Error" });
     }
-}
+};
 
 export const profileDeactivate = async (req, res, next) => {
     try {
@@ -772,6 +840,31 @@ export const countBloodbank = async(req, res, next) => {
     }
 }
 
+export const searchBloodbank = async(req, res, next) => {
+    try {
+        // bloodgroup
+        let bloodgroup = req.query.bloodgroup;
+
+        // check bloodgroup exists
+        if (bloodgroup) {
+            bloodgroup = bloodgroup.replace(/ /g, "+"); // Convert space to +
+            // bloodgroup = decodeURIComponent(bloodgroup);   // Decode URI
+        }
+
+        //create filter
+        let filter = bloodgroup ? { bloodGroup: bloodgroup } : {};
+       
+        // fetch bloodbanks
+        const bloodbanks = await Bloodbank.find(filter);
+
+        res.json({ data: bloodbanks, message: "Bloodbanks List" });
+        
+    } catch (error) {
+        res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+        console.log(error);
+    }
+}
+
 export const getTask = async(req, res, next) => {
     try {
         //staff details displayed
@@ -875,11 +968,11 @@ export const editTask = async(req, res, next) => {
     }
 }
 
-// export const editTask = async(req, res, next) => {
-//     try {
+export const editInstruction = async(req, res, next) => {
+    try {
         
-//     } catch (error) {
-//         res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
-//         console.log(error);
-//     }
-// }
+    } catch (error) {
+        res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+        console.log(error);
+    }
+}

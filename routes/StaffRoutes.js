@@ -30,12 +30,12 @@ router.get("/completedtaskCount", authStaff, completedTask)
 router.get("/task", authStaff, getTask)
 //update completed-task
 router.put("/update-task/:taskId", authStaff, updateTask)
-//bloodbank count
-router.get("/bloodbank-count", authStaff, countBloodbank)
-//fetch bloodbanks
-router.get("/bloodbank", authStaff, getBloodbank)
-//seacr bloodbanks
-router.get("/search-bloodbank", authStaff, searchBloodbank)
+// //bloodbank count
+// router.get("/bloodbank-count", authStaff, countBloodbank)
+// //fetch bloodbanks
+// router.get("/bloodbank", authStaff, getBloodbank)
+// //seacr bloodbanks
+// router.get("/search-bloodbank", authStaff, searchBloodbank)
 //add patient
 router.post("/addPatient", authStaff, addPatient)
 //fetch appoinment
