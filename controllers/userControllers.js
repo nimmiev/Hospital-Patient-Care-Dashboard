@@ -10,57 +10,6 @@ import { Task } from "../models/TaskModel.js";
 import { cloudinaryInstance } from "../config/cloudinary.js";
 import mongoose from "mongoose";
 
-// export const userSignup = async(req, res, next) => {
-//     try{
-//         // console.log("signup hitted");
-
-//         //collect user data
-//         const {name,email,password,confirmPassword,phone,role} = req.body;
-
-//         // console.log(req.file)
-//         const cloudinaryRes = await cloudinaryInstance.uploader.upload(req.file.path)
-//         // console.log(cloudinaryRes);
-        
-
-//         //data vaildation
-//         if(!name || !email || !password || !confirmPassword || !phone) {
-//             return res.status(400).json({message:"All fields required"})
-//         }
-//         // console.log(name,email,password,phone);
-
-//         //check user already exist
-//         const userExist = await User.findOne({email:email})
-
-//         if(userExist) {
-//             return res.status(400).json({message:"User Already Exist"})
-//         }
-        
-//         //compare with confirm password
-//         if(password !== confirmPassword) {
-//             return res.status(400).json({message: "Password do not same"})
-//         }
-
-//         //password hashing
-//         const hashPassword = bcrypt.hashSync(password, 10);
-
-//         //save to db table
-//         const newUser = new User({ name, email, password: hashPassword, phone, role, profilepic: cloudinaryRes.url })
-//         await newUser.save()
-
-//         //generate token using Id and Role
-//         const token = generateToken(newUser._id, "Admin");
-//         res.cookie('token', token);
-
-//         // remove hash password to frontend
-//         const dataUser = new User({ name, email, phone, role, profilepic: cloudinaryRes.url })
-        
-//         res.json({data: dataUser, message:"signup success"})
-
-//     } catch (error) {
-//         res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
-//         console.log(error); 
-//     }
-// };
 export const userSignup = async (req, res, next) => {
     try {
         // Collect user data
@@ -161,9 +110,10 @@ export const userLogin = async(req, res, next) => {
 
         //generate token
         const token = generateToken(userExist._id, "Admin");
+        
         res.cookie('token', token);
+        res.json({ data: { ...userData, token }, message: "Login success" });
 
-        res.json({data: userData, message:"Login success"})
     } catch (error) {
         res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
         console.log(error); 
