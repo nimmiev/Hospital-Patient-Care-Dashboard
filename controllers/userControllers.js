@@ -10,55 +10,114 @@ import { Task } from "../models/TaskModel.js";
 import { cloudinaryInstance } from "../config/cloudinary.js";
 import mongoose from "mongoose";
 
-export const userSignup = async(req, res, next) => {
-    try{
-        // console.log("signup hitted");
+// export const userSignup = async(req, res, next) => {
+//     try{
+//         // console.log("signup hitted");
 
-        //collect user data
-        const {name,email,password,confirmPassword,phone,role} = req.body;
+//         //collect user data
+//         const {name,email,password,confirmPassword,phone,role} = req.body;
 
-        // console.log(req.file)
-        const cloudinaryRes = await cloudinaryInstance.uploader.upload(req.file.path)
-        // console.log(cloudinaryRes);
+//         // console.log(req.file)
+//         const cloudinaryRes = await cloudinaryInstance.uploader.upload(req.file.path)
+//         // console.log(cloudinaryRes);
         
 
-        //data vaildation
-        if(!name || !email || !password || !confirmPassword || !phone) {
-            return res.status(400).json({message:"All fields required"})
-        }
-        // console.log(name,email,password,phone);
+//         //data vaildation
+//         if(!name || !email || !password || !confirmPassword || !phone) {
+//             return res.status(400).json({message:"All fields required"})
+//         }
+//         // console.log(name,email,password,phone);
 
-        //check user already exist
-        const userExist = await User.findOne({email:email})
+//         //check user already exist
+//         const userExist = await User.findOne({email:email})
 
-        if(userExist) {
-            return res.status(400).json({message:"User Already Exist"})
-        }
+//         if(userExist) {
+//             return res.status(400).json({message:"User Already Exist"})
+//         }
         
-        //compare with confirm password
-        if(password !== confirmPassword) {
-            return res.status(400).json({message: "Password do not same"})
+//         //compare with confirm password
+//         if(password !== confirmPassword) {
+//             return res.status(400).json({message: "Password do not same"})
+//         }
+
+//         //password hashing
+//         const hashPassword = bcrypt.hashSync(password, 10);
+
+//         //save to db table
+//         const newUser = new User({ name, email, password: hashPassword, phone, role, profilepic: cloudinaryRes.url })
+//         await newUser.save()
+
+//         //generate token using Id and Role
+//         const token = generateToken(newUser._id, "Admin");
+//         res.cookie('token', token);
+
+//         // remove hash password to frontend
+//         const dataUser = new User({ name, email, phone, role, profilepic: cloudinaryRes.url })
+        
+//         res.json({data: dataUser, message:"signup success"})
+
+//     } catch (error) {
+//         res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+//         console.log(error); 
+//     }
+// };
+export const userSignup = async (req, res, next) => {
+    try {
+        // Collect user data
+        const { name, email, password, confirmPassword, phone, role } = req.body;
+
+        // Validate required fields
+        if (!name || !email || !password || !confirmPassword || !phone) {
+            return res.status(400).json({ message: "All fields are required" });
         }
 
-        //password hashing
+        // Check if user already exists
+        const userExist = await User.findOne({ email });
+        if (userExist) {
+            return res.status(400).json({ message: "User already exists" });
+        }
+
+        // Compare passwords
+        if (password !== confirmPassword) {
+            return res.status(400).json({ message: "Passwords do not match" });
+        }
+
+        // Password hashing
         const hashPassword = bcrypt.hashSync(password, 10);
 
-        //save to db table
-        const newUser = new User({ name, email, password: hashPassword, phone, role, profilepic: cloudinaryRes.url })
-        await newUser.save()
+        // Handle file upload
+        let profilepic = null;
+        if (req.file) {
+            const cloudinaryRes = await new Promise((resolve, reject) => {
+                const uploadStream = cloudinaryInstance.uploader.upload_stream(
+                    { resource_type: "auto" },
+                    (error, result) => {
+                        if (error) reject(error);
+                        else resolve(result);
+                    }
+                );
+                uploadStream.end(req.file.buffer);
+            });
 
-        //generate token using Id and Role
+            profilepic = cloudinaryRes.url;
+        }
+
+        // Save user to DB
+        const newUser = new User({ name, email, password: hashPassword, phone, role, profilepic });
+        await newUser.save();
+
+        // Generate token
         const token = generateToken(newUser._id, "Admin");
-        res.cookie('token', token);
+        res.cookie("token", token);
 
-        // remove hash password to frontend
-        const dataUser = new User({ name, email, phone, role, profilepic: cloudinaryRes.url })
+        // Remove password before sending response
+        const { password: _, ...dataUser } = newUser.toObject();
         
-        res.json({data: dataUser, message:"signup success"})
+        res.json({ data: dataUser, message: "Signup success" });
 
     } catch (error) {
-        res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
-        console.log(error); 
+        res.status(error.statusCode || 500).json({ message: error.message || "Internal Server Error" });
+        console.log(error);
     }
 };
 
@@ -170,6 +229,9 @@ export const userProfileUpdate = async (req, res) => {
                     }
                     profilepic = result.secure_url;
 
+                    //password hashing
+                    const password = bcrypt.hashSync(password, 10);
+
                     // Update user profile in database
                     const updatedUser = await User.findByIdAndUpdate(
                         userId, 
@@ -190,6 +252,10 @@ export const userProfileUpdate = async (req, res) => {
 
             cloudinaryRes.end(req.file.buffer);
         } else {
+
+            //password hashing
+            const password = bcrypt.hashSync(password, 10);
+
             // Update user profile without image
             const updatedUser = await User.findByIdAndUpdate(
                 userId, 
@@ -367,6 +433,7 @@ export const countPatient = async(req, res, next) => {
 
 export const getPatient = async(req, res, next) => {
     try {
+        // console.log("list get")
         //fetch patients
         const patient = await User.find({role: "Patient", isActive: true})
         // console.log(patient)
@@ -392,7 +459,8 @@ export const getPatientDetails = async(req, res, next) => {
         //fetch corresponding patient details
         const patientsData = await User.findById(patientId)
         const patientsData1 = await Patient.findOne({ userId:patientId })
-        // console.log(patientsData1)
+        // console.log("user data:", patientsData)
+        // console.log("patient data:", patientsData1)
 
         if(!patientsData || !patientsData1) {
             return res.status(404).json({message: "Patient not found"})

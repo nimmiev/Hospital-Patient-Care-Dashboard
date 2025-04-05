@@ -14,8 +14,8 @@ const port = process.env.PORT || 3000;
 connectDB();
 
 // CORS Setup
-// const allowlist = process.env.ALLOW_LIST ? process.env.ALLOW_LIST.split(",") : ["http://localhost:5173"];
-const allowlist = process.env.ALLOW_LIST ? process.env.ALLOW_LIST.split(",") : ["https://hospital-patient-care-dashboard-frontend.vercel.app"];
+const allowlist = process.env.ALLOW_LIST ? process.env.ALLOW_LIST.split(",") : ["http://localhost:5173"];
+// const allowlist = process.env.ALLOW_LIST ? process.env.ALLOW_LIST.split(",") : ["https://hospital-patient-care-dashboard-frontend.vercel.app"];
 console.log("Allowed Origins:", allowlist);
 
 // const corsOptions = {
@@ -31,21 +31,22 @@ console.log("Allowed Origins:", allowlist);
 // };
 
 const corsOptions = {
-  origin: allowlist, // Directly use the allowlist array
+  origin: allowlist, // from env or default
   credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"], // Allow necessary HTTP methods
-  allowedHeaders: ["Content-Type", "Authorization"], // Allow required headers
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
 };
 
 app.use(cors(corsOptions));
 app.options("*", cors(corsOptions)); // Handle preflight requests
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "https://hospital-patient-care-dashboard-frontend.vercel.app");
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  res.header("Access-Control-Allow-Credentials", "true");
-  next();
-});
+// app.use((req, res, next) => {
+//   res.header("Access-Control-Allow-Origin", "http://localhost:5173");
+  // res.header("Access-Control-Allow-Origin", "https://hospital-patient-care-dashboard-frontend.vercel.app");
+//   res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
+//   res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+//   res.header("Access-Control-Allow-Credentials", "true");
+//   next();
+// });
 
 
 // Middleware
