@@ -7,6 +7,7 @@ import { Appoinment } from '../models/AppoinmentModel.js';
 import { Bloodbank } from '../models/BloodbankModel.js';
 import { Staff } from "../models/staffModel.js";
 import { Task } from "../models/TaskModel.js";
+import Contact from "../models/ContactModel.js";
 import { cloudinaryInstance } from "../config/cloudinary.js";
 import mongoose from "mongoose";
 
@@ -139,29 +140,6 @@ export const userProfile = async(req, res, next) => {
     }
 }
 
-// export const userProfileUpdate = async(req, res, next) => {
-//     try {
-
-//         //fetch exist profile data
-//         const {name,email,password,phone} = req.body;
-
-//         const cloudinaryRes = await cloudinaryInstance.uploader.upload(req.file.path)
-        
-//         //userId
-//         const userId =  req.user.id;
-//         const usersData = await User.findByIdAndUpdate(userId, { name: name, email: email, password: password, phone: phone, profilepic: cloudinaryRes })
-
-//         const userData = usersData.toObject();
-//         delete userData.password;
-
-//         res.json({data:userData, message:"User profile Updated"})
-        
-//     } catch (error) {
-//         res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
-//         console.log(error);
-//     }
-// }
-
 export const userProfileUpdate = async (req, res) => {
     try {
         const { name, email, password, phone } = req.body;
@@ -250,8 +228,9 @@ export const userLogout = async(req, res, next) => {
     try {
 
         res.clearCookie("token");
-
-        res.json({message:"User Logout success"})
+        res.clearCookie("role");
+        res.clearCookie("theme");
+        res.json({ message: "User Logout success" });
 
     } catch (error) {
         res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
@@ -272,19 +251,85 @@ export const countDoctor = async(req, res, next) => {
     }
 }
 
-export const getDoctor = async(req, res, next) => {
-    try {
-        //fetch doctors
-        const doctor = await User.find({role: "Doctor", isActive: true})
-        // console.log(doctor)
+// export const getDoctor = async(req, res, next) => {
+//     try {
+//         //fetch doctors
+//         const doctor = await User.find({role: "Doctor", isActive: true})
+//         console.log(doctor)
+//         const doctorsData1 = await Doctor.findOne({ userId:doctor.userId })
+//         // console.log(doctorsData1)
 
-        res.json({data:doctor, message:"Doctors List"})
+//         if(!doctor || !doctorsData1) {
+//             return res.status(404).json({message: "Doctor not found"})
+//         }
+
+//         const doctorData = {
+//             name: doctors.name,
+//             email: doctors.email,
+//             phone: doctors.phone,
+//             role: doctors.role,
+//             profilepic: doctor.profilepic,
+//             medicalLicense: doctorsData1.medicalLicense,
+//             qualification: doctorsData1.qualification,
+//             experience: doctorsData1.experience,
+//             department: doctorsData1.department,
+//             schedule: doctorsData1.schedule,
+//             approved: doctorsData1.approved
+//         }
+
+//         res.json({data:doctorData, message:"Doctors List"})
+
+//     } catch (error) {
+//         res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+//         console.log(error);
+//     }
+// }
+
+export const getDoctor = async (req, res, next) => {
+    try {
+        // Step 1: Fetch all users with role "Doctor" and isActive true
+        const doctors = await User.find({ role: "Doctor", isActive: true });
+
+        // Step 2: For each user, find additional doctor details
+        const doctorList = await Promise.all(
+            doctors.map(async (doctor) => {
+                const doctorDetails = await Doctor.findOne({ userId: doctor._id });
+
+                if (!doctorDetails) return null;
+
+                return {
+                    _id: doctor._id,
+                    name: doctor.name,
+                    email: doctor.email,
+                    phone: doctor.phone,
+                    role: doctor.role,
+                    profilepic: doctor.profilepic,
+                    medicalLicense: doctorDetails.medicalLicense,
+                    qualification: doctorDetails.qualification,
+                    experience: doctorDetails.experience,
+                    department: doctorDetails.department,
+                    schedule: doctorDetails.schedule,
+                    approved: doctorDetails.approved
+                };
+            })
+        );
+
+        // Filter out any nulls (in case some doctors don't have detail records)
+        const filteredDoctors = doctorList.filter(d => d !== null);
+
+        // Step 3: Check if we got any valid data
+        if (filteredDoctors.length === 0) {
+            return res.status(404).json({ message: "No doctors found with detailed records" });
+        }
+
+        // Step 4: Send response
+        res.json({ data: filteredDoctors, message: "Doctors List" });
 
     } catch (error) {
-        res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
-        console.log(error);
+        console.error(error);
+        res.status(error.statusCode || 500).json({ message: error.message || "Internal Server Error" });
     }
-}
+};
 
 export const getDoctorDetails = async(req, res, next) => {
     try {
@@ -298,6 +343,7 @@ export const getDoctorDetails = async(req, res, next) => {
 
         //fetch corresponding doctor details
         const doctorsData = await User.findById(doctorId)
+        console.log(doctorsData)
         const doctorsData1 = await Doctor.findOne({ userId:doctorId })
         // console.log(doctorsData1)
 
@@ -306,6 +352,7 @@ export const getDoctorDetails = async(req, res, next) => {
         }
 
         const doctorData = {
+            _id: doctorsData._id,
             name: doctorsData.name,
             email: doctorsData.email,
             phone: doctorsData.phone,
@@ -315,7 +362,8 @@ export const getDoctorDetails = async(req, res, next) => {
             qualification: doctorsData1.qualification,
             experience: doctorsData1.experience,
             department: doctorsData1.department,
-            schedule: doctorsData1.schedule
+            schedule: doctorsData1.schedule,
+            approved: doctorsData1.approved
         }
 
         res.json({data:doctorData, message:"Doctor details fetched"})
@@ -359,7 +407,26 @@ export const doctorApproval = async(req, res, next) => {
         const doctorData = await Doctor.findOneAndUpdate({ userId: doctorId }, { approved: true }, { new: true})
         
         if(doctorData){
-            res.json({message:"Doctor is Activated"})
+            res.json({message:"Doctor is Accepted"})
+        }
+        
+    } catch (error) {
+        res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+        console.log(error);
+    }
+}
+
+export const doctorReject = async(req, res, next) => {
+    try {
+        // console.log("approve hitted");
+        
+        //doctor id
+        const { doctorId } = req.params
+       
+        const doctorData = await Doctor.findOneAndUpdate({ userId: doctorId }, { approved: false }, { new: true})
+        
+        if(doctorData){
+            res.json({message:"Doctor is rejected"})
         }
         
     } catch (error) {
@@ -551,18 +618,62 @@ export const countStaff = async(req, res, next) => {
     }
 }
 
-export const getStaff = async(req, res, next) => {
-    try {
-        //fetch staffs
-        const staff = await User.find({role: "Staff", isActive: true})
-        // console.log(staff)
+// export const getStaff = async(req, res, next) => {
+//     try {
+//         //fetch staffs
+//         const staff = await User.find({role: "Staff", isActive: true})
+//         // console.log(staff)
 
-        res.json({data:staff, message:"Staffs List"})
+//         res.json({data:staff, message:"Staffs List"})
+//     } catch (error) {
+//         res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+//         console.log(error);
+//     }
+// }
+
+export const getStaff = async (req, res, next) => {
+    try {
+        // fetch all users with role "Staff" and isActive true
+        const staffs = await User.find({role: "Staff", isActive: true})
+
+        // for each user, find additional staff details
+        const staffList = await Promise.all(
+            staffs.map(async (staff) => {
+                const staffDetails = await Staff.findOne({ userId: staff._id });
+
+                if (!staffDetails) return null;
+
+                return {
+                    _id: staff._id,
+                    name: staff.name,
+                    email: staff.email,
+                    phone: staff.phone,
+                    role: staff.role,
+                    profilepic: staff.profilepic,
+                    roleDescription: staffDetails.roleDescription,
+                    assignedTask: staffDetails.assignedTask,
+                    taskCount: staffDetails.taskCount,
+                    approved: staffDetails.approved
+                };
+            })
+        );
+
+        // Filter out any nulls (in case some staff don't have detail records)
+        const filteredStaffs = staffList.filter(d => d !== null);
+
+        // Step 3: Check if we got any valid data
+        if (filteredStaffs.length === 0) {
+            return res.status(404).json({ message: "No staffs found with detailed records" });
+        }
+
+        // Step 4: Send response
+        res.json({ data: filteredStaffs, message: "Staffs List" });
+
     } catch (error) {
-        res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
-        console.log(error);
+        console.error(error);
+        res.status(error.statusCode || 500).json({ message: error.message || "Internal Server Error" });
     }
-}
+};
 
 export const getStaffDetails = async(req, res, next) => {
     try {
@@ -591,7 +702,8 @@ export const getStaffDetails = async(req, res, next) => {
             profilepic: staffsData.profilepic,
             roleDescription: staffsData1.roleDescription,
             assignedTask: staffsData1.assignedTask,
-            taskCount: staffsData1.taskCount
+            taskCount: staffsData1.taskCount,
+            approved: staffsData1.approved
         }
 
        res.json({data:patientData, message:"Staff details fetched"}) 
@@ -631,7 +743,23 @@ export const staffApproval = async(req, res, next) => {
         const staffData = await Staff.findOneAndUpdate({ userId: staffId }, { approved: true }, { new: true})
         
         if(staffData){
-            res.json({message:"Staff is Activated"})
+            res.json({message:"Staff is Accepted"})
+        }
+    } catch (error) {
+        res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+        console.log(error);
+    }
+}
+
+export const staffReject = async(req, res, next) => {
+    try {
+        //staffid
+        const { staffId } = req.params
+       
+        const staffData = await Staff.findOneAndUpdate({ userId: staffId }, { approved: false }, { new: true})
+        
+        if(staffData){
+            res.json({message:"Staff is Rejected"})
         }
     } catch (error) {
         res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
@@ -651,13 +779,98 @@ export const countAppoinment = async(req, res, next) => {
     }
 }
 
-export const getAppoinment = async(req, res, next) => {
-    try {
-        //fetch appoinments
-        const appoinment = await Appoinment.find()
-        // console.log(appoinment)
+// export const getAppoinment = async(req, res, next) => {
+//     try {
+//         //fetch appoinments
+//         const appoinment = await Appoinment.find()
+//         .populate({
+//             path: "patientId",
+//             select: "name", // Only get the patient name
+//             model: "User"
+//         })
+//         .populate({
+//             path: "doctorId",
+//             select: "name", // Only get the doctor name
+//             model: "User"
+//         });
 
-        res.json({data:appoinment, message:"All Appoinment List"})
+//         // console.log(appoinment)
+
+//         res.json({data:appoinment, message:"All Appoinment List"})
+
+//     } catch (error) {
+//         res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+//         console.log(error);
+//     }
+// }
+export const getAppoinment = async (req, res, next) => {
+    try {
+        // Fetch appointments
+        const appoinment = await Appoinment.find()
+            .populate({
+                path: "patientId",
+                select: "name -_id", // Only get the patient name and exclude _id
+                model: "User"
+            })
+            .populate({
+                path: "doctorId",
+                select: "name -_id", // Only get the doctor name and exclude _id
+                model: "User"
+            });
+
+        // Transform the result to only include names
+        const result = appoinment.map((appointment) => ({
+            _id: appointment._id,
+            patientName: appointment.patientId.name,
+            doctorName: appointment.doctorId.name,
+            appointmentDate: appointment.appointmentDate,
+            appointmentTime: appointment.appointmentTime,
+            status: appointment.status,
+            consultationNotes: appointment.consultationNotes 
+        }));
+
+        res.json({ data: result, message: "All Appointment List" });
+
+    } catch (error) {
+        res.status(error.statusCode || 500).json({ message: error.message || "Internal Server Error" });
+        console.log(error);
+    }
+};
+
+export const getRealtimeAppoinment = async (req, res, next) => {
+    try {
+        // Format today's date as "YYYY-MM-DD"
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        const todayStr = `${yyyy}-${mm}-${dd}`;
+
+        // Fetch appointments scheduled for today
+        const appoinment = await Appoinment.find({ appointmentDate: todayStr })
+            .populate({
+                path: "patientId",
+                select: "name -_id",
+                model: "User"
+            })
+            .populate({
+                path: "doctorId",
+                select: "name -_id",
+                model: "User"
+            });
+
+        // Format the result
+        const result = appoinment.map((appointment) => ({
+            _id: appointment._id,
+            patientName: appointment.patientId.name,
+            doctorName: appointment.doctorId.name,
+            appointmentDate: appointment.appointmentDate,
+            appointmentTime: appointment.appointmentTime,
+            status: appointment.status,
+            consultationNotes: appointment.consultationNotes
+        }));
+
+        res.json({ data: result, message: "Today's Appointments" });
 
     } catch (error) {
         res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
@@ -665,11 +878,44 @@ export const getAppoinment = async(req, res, next) => {
     }
 }
 
+export const getAppointmentDetails = async (req, res) => {
+    try {
+      const { appointmentId } = req.params;
+  
+      if (!appointmentId) {
+        return res.status(400).json({ message: "Appointment ID is required" });
+      }
+  
+      const appointmentData = await Appoinment.findById(appointmentId).populate({
+        path: "doctorId",
+        select: "name",
+        model: "User"
+      });
+  
+      if (!appointmentData) {
+        return res.status(404).json({ message: "Appointment not found" });
+      }
+  
+      res.status(200).json({
+        data: {
+          doctorName: appointmentData.doctorId.name,
+          appointmentDate: appointmentData.appointmentDate,
+          appointmentTime: appointmentData.appointmentTime
+        },
+        message: "Appointment details fetched"
+      });
+    } catch (error) {
+      console.error("Error fetching appointment details:", error);
+      res.status(500).json({ message: "Internal Server Error" });
+    }
+}
+  
 export const addAppoinment = async(req, res, next) => {
     try {
         //collect data
         const { patientId, doctorId, appointmentDate, appointmentTime } = req.body;
 
+        console.log({patientId, doctorId})
         //data vaildation
         if(!patientId || !doctorId || !appointmentDate || !appointmentTime) {
             return res.status(400).json({message:"All fields required"})
@@ -715,6 +961,14 @@ export const updateAppoinment = async(req, res, next) => {
         if (!existingAppointment) {
             return res.status(404).json({ message: "No Cancelled appointment found to reschedule" });
         }
+
+        // Combine date and time to validate if it's in the future
+        const selectedDateTime = new Date(`${appointmentDate}T${appointmentTime}`);
+        const currentDateTime = new Date();
+
+        if (selectedDateTime < currentDateTime) {
+            return res.status(400).json({ message: "Appointment cannot be scheduled in the past" });
+        }
        
         // Update appointment details
         existingAppointment.appointmentDate = appointmentDate;
@@ -722,6 +976,7 @@ export const updateAppoinment = async(req, res, next) => {
         existingAppointment.status = "Rescheduled";
 
         await existingAppointment.save();
+        // console.log(existingAppointment);
 
         res.status(200).json({ message: "Appointment rescheduled", appointment: existingAppointment });
 
@@ -735,7 +990,7 @@ export const cancelAppoinment = async(req, res, next) => {
     try {
         //fetch appoinmentId
         const { appoinmentId } = req.params;
-        console.log(appoinmentId)
+        
         //validate appoinmentId
         if(!appoinmentId) {
             return res.status(400).json({message: "Appoinment id required"})
@@ -858,31 +1113,44 @@ export const countBloodbank = async(req, res, next) => {
     }
 }
 
-export const searchBloodbank = async(req, res, next) => {
-    try {
-        // bloodgroup
-        let bloodgroup = req.query.bloodgroup;
+// export const searchBloodbank = async(req, res, next) => {
+//     try {
+//         // bloodgroup
+//         let bloodgroup = req.query.bloodgroup;
 
-        // check bloodgroup exists
-        if (bloodgroup) {
-            bloodgroup = bloodgroup.replace(/ /g, "+"); // Convert space to +
-            // bloodgroup = decodeURIComponent(bloodgroup);   // Decode URI
-        }
+//         // check bloodgroup exists
+//         if (bloodgroup) {
+//             bloodgroup = bloodgroup.replace(/ /g, "+"); // Convert space to +
+//             // bloodgroup = decodeURIComponent(bloodgroup);   // Decode URI
+//         }
 
-        //create filter
-        let filter = bloodgroup ? { bloodGroup: bloodgroup } : {};
+//         //create filter
+//         let filter = bloodgroup ? { bloodGroup: bloodgroup } : {};
        
-        // fetch bloodbanks
-        const bloodbanks = await Bloodbank.find(filter);
+//         // fetch bloodbanks
+//         const bloodbanks = await Bloodbank.find(filter);
 
-        res.json({ data: bloodbanks, message: "Bloodbanks List" });
+//         res.json({ data: bloodbanks, message: "Bloodbanks List" });
         
-    } catch (error) {
-        res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
-        console.log(error);
-    }
-}
+//     } catch (error) {
+//         res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+//         console.log(error);
+//     }
+// }
 
+export const searchBloodbank = async (req, res) => {
+    try {
+        const { bloodGroup } = req.query;
+        const results = await Bloodbank.find({
+        bloodGroup: { $regex: new RegExp(bloodGroup, "i") }, // case-insensitive
+        });
+
+        res.status(200).json({ data: results });
+    } catch (error) {
+        res.status(500).json({ message: "Search error", error: error.message });
+    }
+};
+  
 export const getTask = async(req, res, next) => {
     try {
         //staff details displayed
@@ -985,6 +1253,23 @@ export const editTask = async(req, res, next) => {
         console.log(error);
     }
 }
+
+
+export const contactMessage = async(req, res, next) => {
+    try {
+        const { name, email, message } = req.body;
+        if (!name || !email || !message) {
+          return res.status(400).json({ message: "All fields are required" });
+        }
+    
+        const newContact = new Contact({ name, email, message });
+        await newContact.save();
+    
+        res.status(201).json({ message: "Message received successfully!" });
+      } catch (error) {
+        res.status(500).json({ message: "Something went wrong", error: error.message });
+      }
+  }
 
 export const editInstruction = async(req, res, next) => {
     try {

@@ -6,7 +6,7 @@ const staffSchema = new mongoose.Schema(
     roleDescription: { type: String, required: true },
     assignedTask: { type: Boolean, default: false },//to know atleast one task added or not
     taskCount: { type: Number, default: 0},
-    approved: { type: Boolean, default:false }
+    approved: { type: Boolean, default: null }
   },
   {
     timestamps: true

@@ -10,7 +10,7 @@ export const authUser = async (req, res, next) => {
       token = req.headers.authorization.split(" ")[1];
     }
 
-    console.log("Token:", token);
+    // console.log("Token:", token);
 
     if (!token) {
       return res.status(401).json({ message: "Access denied. No token provided." });
@@ -18,7 +18,7 @@ export const authUser = async (req, res, next) => {
 
     // 2. Decode token
     const decodedToken = jwt.verify(token, process.env.JWT_SECRET_KEY);
-    console.log("Decoded Token:", decodedToken);
+    // console.log("Decoded Token:", decodedToken);
 
     if (!decodedToken) {
       return res.status(401).json({ message: "Invalid token." });
