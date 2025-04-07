@@ -140,72 +140,123 @@ export const userProfile = async(req, res, next) => {
     }
 }
 
+// export const userProfileUpdate = async (req, res) => {
+//     try {
+//         const { name, email, password, phone } = req.body;
+//         const userId = req.user.id;
+
+//         let profilepic = null;
+        
+//         if (req.file) { 
+//             const cloudinaryRes = await cloudinaryInstance.uploader.upload_stream(
+//                 { resource_type: "auto" },
+//                 async (error, result) => {
+//                     if (error) {
+//                         console.error("Cloudinary Upload Error:", error);
+//                         return res.status(500).json({ message: "Image upload failed" });
+//                     }
+//                     profilepic = result.secure_url;
+
+//                     //password hashing
+//                     const password = bcrypt.hashSync(password, 10);
+
+//                     // Update user profile in database
+//                     const updatedUser = await User.findByIdAndUpdate(
+//                         userId, 
+//                         { name, email, password, phone, profilepic }, 
+//                         { new: true }
+//                     );
+
+//                     if (!updatedUser) {
+//                         return res.status(404).json({ message: "User not found" });
+//                     }
+
+//                     const userData = updatedUser.toObject();
+//                     delete userData.password; 
+
+//                     res.json({ data: userData, message: "User profile updated successfully" });
+//                 }
+//             );
+
+//             cloudinaryRes.end(req.file.buffer);
+//         } else {
+
+//             //password hashing
+//             const password = bcrypt.hashSync(password, 10);
+
+//             // Update user profile without image
+//             const updatedUser = await User.findByIdAndUpdate(
+//                 userId, 
+//                 { name, email, password, phone }, 
+//                 { new: true }
+//             );
+
+//             if (!updatedUser) {
+//                 return res.status(404).json({ message: "User not found" });
+//             }
+
+//             const userData = updatedUser.toObject();
+//             delete userData.password;
+
+//             res.json({ data: userData, message: "User profile updated successfully" });
+//         }
+
+//     } catch (error) {
+//         console.error(error);
+//         res.status(error.statusCode || 500).json({ message: error.message || "Internal Server Error" });
+//     }
+// };
+
 export const userProfileUpdate = async (req, res) => {
     try {
-        const { name, email, password, phone } = req.body;
+        const { name, email, phone, password } = req.body;
         const userId = req.user.id;
-
+        let updateData = { name, email, phone };
         let profilepic = null;
-        
-        if (req.file) { 
-            const cloudinaryRes = await cloudinaryInstance.uploader.upload_stream(
-                { resource_type: "auto" },
-                async (error, result) => {
-                    if (error) {
-                        console.error("Cloudinary Upload Error:", error);
-                        return res.status(500).json({ message: "Image upload failed" });
+
+        // If a file is uploaded, handle Cloudinary upload
+        if (req.file) {
+            const cloudinaryRes = await new Promise((resolve, reject) => {
+                const stream = cloudinaryInstance.uploader.upload_stream(
+                    { resource_type: "auto" },
+                    (error, result) => {
+                        if (error) reject(error);
+                        else resolve(result);
                     }
-                    profilepic = result.secure_url;
+                );
+                stream.end(req.file.buffer);
+            });
 
-                    //password hashing
-                    const password = bcrypt.hashSync(password, 10);
-
-                    // Update user profile in database
-                    const updatedUser = await User.findByIdAndUpdate(
-                        userId, 
-                        { name, email, password, phone, profilepic }, 
-                        { new: true }
-                    );
-
-                    if (!updatedUser) {
-                        return res.status(404).json({ message: "User not found" });
-                    }
-
-                    const userData = updatedUser.toObject();
-                    delete userData.password; 
-
-                    res.json({ data: userData, message: "User profile updated successfully" });
-                }
-            );
-
-            cloudinaryRes.end(req.file.buffer);
-        } else {
-
-            //password hashing
-            const password = bcrypt.hashSync(password, 10);
-
-            // Update user profile without image
-            const updatedUser = await User.findByIdAndUpdate(
-                userId, 
-                { name, email, password, phone }, 
-                { new: true }
-            );
-
-            if (!updatedUser) {
-                return res.status(404).json({ message: "User not found" });
-            }
-
-            const userData = updatedUser.toObject();
-            delete userData.password;
-
-            res.json({ data: userData, message: "User profile updated successfully" });
+            profilepic = cloudinaryRes.secure_url;
+            updateData.profilepic = profilepic;
         }
 
+        // Only hash password if it's provided
+        if (password && password.trim() !== "") {
+            updateData.password = bcrypt.hashSync(password, 10);
+        }
+
+        const updatedUser = await User.findByIdAndUpdate(
+            userId,
+            updateData,
+            { new: true }
+        );
+
+        if (!updatedUser) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        const userData = updatedUser.toObject();
+        delete userData.password;
+
+        res.json({ data: userData, message: "User profile updated successfully" });
+
     } catch (error) {
-        console.error(error);
+        console.error("Error in userProfileUpdate:", error);
         res.status(error.statusCode || 500).json({ message: error.message || "Internal Server Error" });
     }
 };
+
 
 export const profileDeactivate = async (req, res, next) => {
     try {
