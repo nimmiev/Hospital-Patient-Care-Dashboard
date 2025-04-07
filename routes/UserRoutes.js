@@ -5,7 +5,7 @@ import { userSignup, userLogin, userProfile, userProfileUpdate, userLogout, prof
     countStaff, getStaff, getStaffDetails, deleteStaff, staffApproval, staffReject,
     countAppoinment, getAppoinment, getAppointmentDetails, getRealtimeAppoinment, addAppoinment, updateAppoinment, cancelAppoinment,
     countBloodbank, getBloodbank, addBloodbank, updateBloodbank, deleteBloodbank,
-    getTask, editTask, addTask, deleteTask, editInstruction,
+    getTask, editTask, getTaskById, addTask, deleteTask, editInstruction,
     searchBloodbank
  } from "../controllers/userControllers.js";
 import { authUser } from "../middlewares/authUser.js"
@@ -101,6 +101,8 @@ router.get("/search-bloodbank", authUser, searchBloodbank);
 router.get("/task", authUser, getTask)
 //add Task
 router.post("/add-task", authUser, addTask)
+// fetch task by id
+router.get("/task/:taskId", authUser, getTaskById)
 //edit Task
 router.post("/edit-task/:taskId", authUser, editTask)
 //delete Task

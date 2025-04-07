@@ -140,73 +140,6 @@ export const userProfile = async(req, res, next) => {
     }
 }
 
-// export const userProfileUpdate = async (req, res) => {
-//     try {
-//         const { name, email, password, phone } = req.body;
-//         const userId = req.user.id;
-
-//         let profilepic = null;
-        
-//         if (req.file) { 
-//             const cloudinaryRes = await cloudinaryInstance.uploader.upload_stream(
-//                 { resource_type: "auto" },
-//                 async (error, result) => {
-//                     if (error) {
-//                         console.error("Cloudinary Upload Error:", error);
-//                         return res.status(500).json({ message: "Image upload failed" });
-//                     }
-//                     profilepic = result.secure_url;
-
-//                     //password hashing
-//                     const password = bcrypt.hashSync(password, 10);
-
-//                     // Update user profile in database
-//                     const updatedUser = await User.findByIdAndUpdate(
-//                         userId, 
-//                         { name, email, password, phone, profilepic }, 
-//                         { new: true }
-//                     );
-
-//                     if (!updatedUser) {
-//                         return res.status(404).json({ message: "User not found" });
-//                     }
-
-//                     const userData = updatedUser.toObject();
-//                     delete userData.password; 
-
-//                     res.json({ data: userData, message: "User profile updated successfully" });
-//                 }
-//             );
-
-//             cloudinaryRes.end(req.file.buffer);
-//         } else {
-
-//             //password hashing
-//             const password = bcrypt.hashSync(password, 10);
-
-//             // Update user profile without image
-//             const updatedUser = await User.findByIdAndUpdate(
-//                 userId, 
-//                 { name, email, password, phone }, 
-//                 { new: true }
-//             );
-
-//             if (!updatedUser) {
-//                 return res.status(404).json({ message: "User not found" });
-//             }
-
-//             const userData = updatedUser.toObject();
-//             delete userData.password;
-
-//             res.json({ data: userData, message: "User profile updated successfully" });
-//         }
-
-//     } catch (error) {
-//         console.error(error);
-//         res.status(error.statusCode || 500).json({ message: error.message || "Internal Server Error" });
-//     }
-// };
-
 export const userProfileUpdate = async (req, res) => {
     try {
         const { name, email, phone, password } = req.body;
@@ -256,7 +189,6 @@ export const userProfileUpdate = async (req, res) => {
         res.status(error.statusCode || 500).json({ message: error.message || "Internal Server Error" });
     }
 };
-
 
 export const profileDeactivate = async (req, res, next) => {
     try {
@@ -1234,6 +1166,7 @@ export const addTask = async(req, res, next) => {
         // fetch data
         const { staffId, taskDescription } = req.body
 
+        console.log({staffId, taskDescription})
         // check staff exist
         const staff = await Staff.findOne({userId: staffId});
         if (!staff) {
@@ -1256,6 +1189,37 @@ export const addTask = async(req, res, next) => {
         console.log(error);
     }
 }
+
+export const getTaskById = async (req, res, next) => {
+    try {
+        const { taskId } = req.params;
+
+        // Fetch the specific task
+        const task = await Task.findById(taskId);
+        if (!task) {
+            return res.status(404).json({ message: "Task not found" });
+        }
+
+        // Fetch associated staff (User) details
+        const user = await User.findById(task.staffId, "name email");
+
+        const taskWithUser = {
+            _id: task._id,
+            taskDescription: task.taskDescription,
+            status: task.status,
+            createdAt: task.createdAt,
+            updatedAt: task.updatedAt,
+            staffDetails: user ? { name: user.name, email: user.email } : null,
+        };
+
+        res.status(200).json({ data: taskWithUser });
+
+    } catch (error) {
+        console.error(error);
+        res.status(error.statusCode || 500).json({ message: error.message || "Internal Server Error" });
+    }
+};
+
 
 export const deleteTask = async(req, res, next) => {
     try {
@@ -1304,7 +1268,6 @@ export const editTask = async(req, res, next) => {
         console.log(error);
     }
 }
-
 
 export const contactMessage = async(req, res, next) => {
     try {
