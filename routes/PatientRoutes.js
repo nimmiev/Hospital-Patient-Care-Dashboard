@@ -1,8 +1,10 @@
 import e from "express";
-import { patientLogin, patientProfile, patientSignup, patientProfileUpdate, patientProfileDeactivate, patientLogout,
-    countAppoinment, appoinmentList, requestAppoinment, cancelAppoinment, countBloodbank, getBloodbank, searchBloodbank
+import { patientLogin, patientProfile, patientSignup, updatePatientProfile, updatePatientPassword, patientProfileDeactivate, patientLogout,
+    countAppoinment, appoinmentList, requestAppoinment, cancelAppoinment, countBloodbank, getBloodbank, searchBloodbank,
+    secureData
  } from "../controllers/patientControllers.js";
 import { authPatient } from "../middlewares/authPatient.js";
+import { upload } from "../middlewares/multer.js"
 
 const router = e.Router();
 
@@ -13,13 +15,17 @@ router.put("/login", patientLogin)
 //get-profile
 router.get("/profile", authPatient, patientProfile)
 //edit-profile
-router.put("/update", authPatient, patientProfileUpdate)
+// router.put("/update", authPatient, patientProfileUpdate)
+
+router.put("/profile/update", authPatient, upload.single("profilepic"), updatePatientProfile);
+router.put("/profile/password", authPatient, updatePatientPassword);
+
 //deactivate-profile
 router.put("/deactivate", authPatient, patientProfileDeactivate)
 //delete-profile
 router.delete("/delete")
 //logout
-router.get("/logout", authPatient, patientLogout)
+router.put("/logout", authPatient, patientLogout)
 //forget-password
 //change-password
 //check-user
@@ -38,5 +44,8 @@ router.delete("/cancel/:appoinmentId", authPatient, cancelAppoinment)
 router.get("/bloodbank", authPatient, getBloodbank)
 //seacr bloodbanks
 router.get("/search-bloodbank", authPatient, searchBloodbank)
+// sample route
+router.get("/me", authPatient, secureData)
+
 
 export {router as patientRouter}

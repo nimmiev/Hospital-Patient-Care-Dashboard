@@ -1,8 +1,9 @@
 import e from "express";
-import { doctorLogin, doctorProfile, doctorSignup, doctorProfileUpdate, doctorprofileDeactivate, doctorLogout,
-    countAppoinment, appoinmentList, cancelAppoinment, getPatient, getPatientDetails, addNotes
+import { doctorLogin, doctorProfile, doctorSignup, updateDoctorProfile, updateDoctorPassword, doctorprofileDeactivate, doctorLogout,
+    countAppoinment, appoinmentList, cancelAppoinment, getPatient, getPatientDetails, addNotes, secureData
  } from "../controllers/doctorController.js";
 import { authDoctor } from "../middlewares/authDoctor.js"
+import { upload } from "../middlewares/multer.js"
 
 const router = e.Router();
 
@@ -13,13 +14,15 @@ router.put("/login", doctorLogin)
 //get-profile
 router.get("/profile", authDoctor, doctorProfile)
 //edit-profile
-router.put("/profile-update", authDoctor, doctorProfileUpdate)
+// router.put("/profile-update", authDoctor, doctorProfileUpdate)
+router.put("/profile-update", authDoctor, upload.single("image"), updateDoctorProfile)
+router.put("/pwd-update", authDoctor, updateDoctorPassword)
 //deactivate-profile
 router.put("/deactivate", authDoctor, doctorprofileDeactivate)
 //delete-profile
 router.delete("/delete")
 //logout
-router.get("/logout", authDoctor, doctorLogout)
+router.put("/logout", authDoctor, doctorLogout)
 //forget-password
 //change-password
 //check-user
@@ -36,5 +39,7 @@ router.get("/patient/:patientId", authDoctor, getPatientDetails)
 router.post("/add-notes/:appoinmentId", authDoctor, addNotes)
 //cancel appoinment
 router.delete("/cancel/:appoinmentId", authDoctor, cancelAppoinment)
+// sample route
+router.get("/me", authDoctor, secureData)
 
 export {router as doctorRouter}

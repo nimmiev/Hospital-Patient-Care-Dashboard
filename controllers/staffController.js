@@ -83,7 +83,7 @@ export const staffLogin = async(req, res, next) => {
 
         //check staff already exist
         const staffExist = await User.findOne({email})
-
+// console.log(staffExist)
         if(!staffExist) {
             return res.status(404).json({message:"Staff not found"})
         }
@@ -98,10 +98,9 @@ export const staffLogin = async(req, res, next) => {
         if(!staffExist.isActive) {
             return res.status(401).json({message: "Staff account is not active"})
         }
-
+// console.log(staffExist)
         //fetch staff using id and check approved
         const staffApprove = await Staff.findOne({userId: staffExist._id})
-
         // console.log(staffApprove)
         
         if (!staffApprove || !staffApprove.approved) {
@@ -115,8 +114,7 @@ export const staffLogin = async(req, res, next) => {
         //generate token
         const token = generateToken(staffData._id, "Staff");
         res.cookie('token', token);
-
-        res.json({data: staffData, message:"Login success"})
+        res.json({ data: { ...staffData, token }, message: "Staff Login success" });
     } catch (error) {
         res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
         console.log(error); 
@@ -207,9 +205,9 @@ export const staffLogout = async(req, res, next) => {
     try {
 
         res.clearCookie("token");
-
-        res.json({message:"Staff Logout success"})
-
+        res.clearCookie("role");
+        res.clearCookie("theme");
+        res.json({ message: "Staff Logout success" });
     } catch (error) {
         res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
         console.log(error);
@@ -407,6 +405,17 @@ export const getAppoinment = async(req, res, next) => {
 
         res.json({data:appoinment, message:"All Appoinment List"})
 
+    } catch (error) {
+        res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+        console.log(error);
+    }
+}
+
+export const secureData = async (req, res, next) => {
+    try{
+        // console.log(res)
+        const user = await User.findById(req.staff.id).select("-password");
+        res.json({ data: user });
     } catch (error) {
         res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
         console.log(error);

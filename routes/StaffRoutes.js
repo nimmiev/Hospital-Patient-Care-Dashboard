@@ -1,6 +1,7 @@
 import e from "express";
 import { staffLogin, staffProfile, staffSignup, staffProfileUpdate, staffProfiledeactivate, staffLogout,
-    getTask, completedTask, updateTask, countBloodbank, getBloodbank, searchBloodbank, addPatient, getAppoinment
+    getTask, completedTask, updateTask, countBloodbank, getBloodbank, searchBloodbank, addPatient, getAppoinment,
+    secureData
  } from "../controllers/staffController.js";
 import { authStaff } from "../middlewares/authStaff.js";
 
@@ -19,7 +20,7 @@ router.put("/deactivate", authStaff, staffProfiledeactivate)
 //delete-profile
 router.delete("/delete")
 //logout
-router.get("/logout", authStaff, staffLogout)
+router.put("/logout", authStaff, staffLogout)
 //forget-password
 //change-password
 //check-user
@@ -40,6 +41,8 @@ router.put("/update-task/:taskId", authStaff, updateTask)
 router.post("/addPatient", authStaff, addPatient)
 //fetch appoinment
 router.get("/appoinment", authStaff, getAppoinment)
+// sample route
+router.get("/me", authStaff, secureData)
 
 
 export {router as staffRouter}
