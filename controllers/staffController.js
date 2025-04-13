@@ -70,7 +70,7 @@ export const staffSignup = async(req, res, next) => {
 
 export const staffLogin = async(req, res, next) => {
     try{
-        // console.log("Login hitted");
+        console.log("Login hitted");
 
         //collect staff data
         const {email,password} = req.body;
@@ -98,10 +98,10 @@ export const staffLogin = async(req, res, next) => {
         if(!staffExist.isActive) {
             return res.status(401).json({message: "Staff account is not active"})
         }
-// console.log(staffExist)
+console.log(staffExist)
         //fetch staff using id and check approved
         const staffApprove = await Staff.findOne({userId: staffExist._id})
-        // console.log(staffApprove)
+        console.log(staffApprove)
         
         if (!staffApprove || !staffApprove.approved) {
             return res.status(403).json({ message: "Account is pending admin approval." });

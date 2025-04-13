@@ -1,6 +1,6 @@
 import e from "express";
 import { doctorLogin, doctorProfile, doctorSignup, updateDoctorProfile, updateDoctorPassword, doctorprofileDeactivate, doctorLogout,
-    countAppoinment, appoinmentList, cancelAppoinment, getPatient, getPatientDetails, addNotes, secureData
+    countAppoinment, appoinmentList, cancelAppoinment, getPatient, getPatientDetails, addNotes, secureData, appointmentListForToday
  } from "../controllers/doctorController.js";
 import { authDoctor } from "../middlewares/authDoctor.js"
 import { upload } from "../middlewares/multer.js"
@@ -31,6 +31,8 @@ router.put("/logout", authDoctor, doctorLogout)
 router.get("/appoinment-count", authDoctor, countAppoinment)
 //list appoinments
 router.get("/appoinment-list", authDoctor, appoinmentList)
+// list today appoinments
+router.get("/appointment/today", authDoctor, appointmentListForToday)
 //fetch patients
 router.get("/patient", authDoctor, getPatient)
 //fetch patient details

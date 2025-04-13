@@ -8,6 +8,7 @@ import { Bloodbank } from '../models/BloodbankModel.js';
 import { Staff } from "../models/staffModel.js";
 import { Task } from "../models/TaskModel.js";
 import Contact from "../models/ContactModel.js";
+import Instruction from "../models/InstructionModel.js";
 import { cloudinaryInstance } from "../config/cloudinary.js";
 import mongoose from "mongoose";
 
@@ -234,44 +235,10 @@ export const countDoctor = async(req, res, next) => {
     }
 }
 
-// export const getDoctor = async(req, res, next) => {
-//     try {
-//         //fetch doctors
-//         const doctor = await User.find({role: "Doctor", isActive: true})
-//         console.log(doctor)
-//         const doctorsData1 = await Doctor.findOne({ userId:doctor.userId })
-//         // console.log(doctorsData1)
-
-//         if(!doctor || !doctorsData1) {
-//             return res.status(404).json({message: "Doctor not found"})
-//         }
-
-//         const doctorData = {
-//             name: doctors.name,
-//             email: doctors.email,
-//             phone: doctors.phone,
-//             role: doctors.role,
-//             profilepic: doctor.profilepic,
-//             medicalLicense: doctorsData1.medicalLicense,
-//             qualification: doctorsData1.qualification,
-//             experience: doctorsData1.experience,
-//             department: doctorsData1.department,
-//             schedule: doctorsData1.schedule,
-//             approved: doctorsData1.approved
-//         }
-
-//         res.json({data:doctorData, message:"Doctors List"})
-
-//     } catch (error) {
-//         res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
-//         console.log(error);
-//     }
-// }
-
 export const getDoctor = async (req, res, next) => {
     try {
         // Step 1: Fetch all users with role "Doctor" and isActive true
-        const doctors = await User.find({ role: "Doctor", isActive: true });
+        const doctors = await User.find({ role: "Doctor", isActive: true }).sort({ createdAt: -1 });
 
         // Step 2: For each user, find additional doctor details
         const doctorList = await Promise.all(
@@ -435,7 +402,7 @@ export const getPatient = async(req, res, next) => {
     try {
         // console.log("list get")
         //fetch patients
-        const patient = await User.find({role: "Patient", isActive: true})
+        const patient = await User.find({role: "Patient", isActive: true}).sort({ createdAt: -1 });
         // console.log(patient)
 
         res.json({data:patient, message:"Patients List"})
@@ -617,7 +584,7 @@ export const countStaff = async(req, res, next) => {
 export const getStaff = async (req, res, next) => {
     try {
         // fetch all users with role "Staff" and isActive true
-        const staffs = await User.find({role: "Staff", isActive: true})
+        const staffs = await User.find({role: "Staff", isActive: true}).sort({ createdAt: -1 });
 
         // for each user, find additional staff details
         const staffList = await Promise.all(
@@ -799,7 +766,8 @@ export const getAppoinment = async (req, res, next) => {
                 path: "doctorId",
                 select: "name -_id", // Only get the doctor name and exclude _id
                 model: "User"
-            });
+            })
+            .sort({ createdAt: -1 });
 
         // Transform the result to only include names
         const result = appoinment.map((appointment) => ({
@@ -995,7 +963,7 @@ export const cancelAppoinment = async(req, res, next) => {
 export const getBloodbank = async(req, res, next) => {
     try {
          //fetch bloodbank
-         const bloodbank = await Bloodbank.find()
+         const bloodbank = await Bloodbank.find().sort({ createdAt: -1 });
          // console.log(bloodbank)
  
          res.json({data:bloodbank, message:"All Bloodbanks List"})
@@ -1137,7 +1105,7 @@ export const searchBloodbank = async (req, res) => {
 export const getTask = async(req, res, next) => {
     try {
         //staff details displayed
-        const tasks = await Task.find();
+        const tasks = await Task.find().sort({ createdAt: -1 });
 
         //fetch staff name and email
         const updatedTasks = await Promise.all(
@@ -1220,7 +1188,6 @@ export const getTaskById = async (req, res, next) => {
     }
 };
 
-
 export const deleteTask = async(req, res, next) => {
     try {
         // fetch taskId
@@ -1285,9 +1252,59 @@ export const contactMessage = async(req, res, next) => {
       }
   }
 
+// export const editInstruction = async(req, res, next) => {
+//     try {
+        
+//     } catch (error) {
+//         res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+//         console.log(error);
+//     }
+// }
+export const getInstruction = async(req, res, next) => {
+    try {
+        const instructions = await Instruction.find().sort({ createdAt: -1 });
+        res.json({ data: instructions });
+    } catch (error) {
+        res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+        console.log(error);
+    }
+}
+
+export const addInstruction = async(req, res, next) => {
+    try {
+        const { title, description } = req.body;
+        const instruction = new Instruction({
+            title,
+            description,
+            createdBy: req.user?.name || 'Admin'
+        });
+        const saved = await instruction.save();
+        res.status(201).json({message: "Instruction added successfully"});
+    } catch (error) {
+        res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+        console.log(error);
+    }
+}
+
 export const editInstruction = async(req, res, next) => {
     try {
-        
+        const { title, description } = req.body;
+        const updated = await Instruction.findByIdAndUpdate(
+            req.params.id,
+            { title, description },
+            { new: true }
+        );
+        res.json({ message: "Instruction updated successfully"});
+    } catch (error) {
+        res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+        console.log(error);
+    }
+}
+
+export const deleteInstruction = async(req, res, next) => {
+    try {
+        await Instruction.findByIdAndDelete(req.params.id);
+        res.json({ message: 'Instruction deleted successfully' });
     } catch (error) {
         res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
         console.log(error);

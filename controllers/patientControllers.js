@@ -332,6 +332,11 @@ export const appoinmentList = async (req, res, next) => {
         const patientId = req.patient.id;
 
         const appoinment = await Appoinment.find({ patientId: patientId })
+        .populate({
+            path: "doctorId",
+            select: "name -_id", // Only get the doctor name and exclude _id
+            model: "User"
+        })
         const patient = await Patient.findOne({ userId: patientId });
         const scheduled = patient.scheduled;
 
@@ -342,6 +347,44 @@ export const appoinmentList = async (req, res, next) => {
         console.log(error);
     }
 }
+
+export const appointmentListForToday = async (req, res, next) => {
+    try {
+        const patientId = req.patient.id;
+
+        // Get today's date in YYYY-MM-DD format
+        const today = new Date().toISOString().split('T')[0];
+
+        // Find appointments for today
+        const appointments = await Appoinment.find({
+            patientId: patientId,
+            appointmentDate: today
+        }).populate({
+            path: "doctorId",
+            select: "name -_id", // Only get the doctor name and exclude _id
+            model: "User"
+        })
+
+        if (appointments.length === 0) {
+            return res.status(200).json({ message: "No appointment for today", data: [] });
+        }
+
+        const patient = await Patient.findOne({ userId: patientId });
+        const scheduled = patient?.scheduled || false;
+
+        res.status(200).json({
+            data: appointments,
+            scheduled,
+            message: "Today's Appointments"
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(error.statusCode || 500).json({
+            message: error.message || "Internal Server Error"
+        });
+    }
+};
 
 export const requestAppoinment = async (req, res, next) => {
     try {

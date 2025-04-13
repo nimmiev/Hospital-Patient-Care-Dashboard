@@ -1,7 +1,7 @@
 import e from "express";
 import { patientLogin, patientProfile, patientSignup, updatePatientProfile, updatePatientPassword, patientProfileDeactivate, patientLogout,
     countAppoinment, appoinmentList, requestAppoinment, cancelAppoinment, countBloodbank, getBloodbank, searchBloodbank,
-    secureData
+    secureData, appointmentListForToday
  } from "../controllers/patientControllers.js";
 import { authPatient } from "../middlewares/authPatient.js";
 import { upload } from "../middlewares/multer.js"
@@ -36,6 +36,8 @@ router.get("/appoinment-count", authPatient, countAppoinment)
 router.get("/bloodbank-count", authPatient, countBloodbank)
 //list appoinments
 router.get("/appoinment-list", authPatient, appoinmentList)
+// list today appoinments
+router.get("/appointment/today", authPatient, appointmentListForToday)
 //request appoinments
 router.put("/request", authPatient, requestAppoinment)
 //cancel appoinments
