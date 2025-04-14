@@ -1,38 +1,38 @@
 import jwt from "jsonwebtoken"
 
-export const authPatient = async(req, res, next) => {
+export const authPatient = async (req, res, next) => {
     try {
         //collect token from cookies
-        const {token} = req.cookies
+        let token = req.cookies.token;
 
-        // If token not in cookie, check Authorization header
         if (!token && req.headers.authorization && req.headers.authorization.startsWith("Bearer ")) {
             token = req.headers.authorization.split(" ")[1];
         }
 
-        if(!token) {
-            return res.status(401).json({message:"Access denied. No token provided."})
+
+        if (!token) {
+            return res.status(401).json({ message: "Access denied. No token provided." })
         }
 
         //decode token
         var decodedToken = jwt.verify(token, process.env.JWT_SECRET_KEY)
         // console.log(decodedToken);
 
-        if(!decodedToken) {
-            return res.status(401).json({message:"Access denied. No token provided."})
+        if (!decodedToken) {
+            return res.status(401).json({ message: "Access denied. No token provided." })
         }
 
         req.patient = decodedToken;
 
         //check role
-        if(req.patient.role != 'Patient'){
-            return res.status(401).json({message:"Access denied. Insufficient permissions."})
+        if (req.patient.role != 'Patient') {
+            return res.status(401).json({ message: "Access denied. Insufficient permissions." })
         }
 
         next()
 
     } catch (error) {
-        res.status( error.statusCode || 500 ).json({message: error.message || "Internal Server Error"})
+        res.status(error.statusCode || 500).json({ message: error.message || "Internal Server Error" })
         console.log(error);
     }
 }
