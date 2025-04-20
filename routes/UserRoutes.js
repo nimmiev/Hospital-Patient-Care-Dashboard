@@ -1,15 +1,15 @@
-import e from "express";
+import e from "express"
 import { userSignup, userLogin, userProfile, userProfileUpdate, userLogout, profileDeactivate, 
     countDoctor, getDoctor, getDoctorDetails, deleteDoctor, doctorApproval, doctorReject,
     countPatient, getPatient, getPatientDetails, deletePatient, addPatient,
     countStaff, getStaff, getStaffDetails, deleteStaff, staffApproval, staffReject,
     countAppoinment, getAppoinment, getAppointmentDetails, getRealtimeAppoinment, addAppoinment, updateAppoinment, cancelAppoinment,
     countBloodbank, getBloodbank, addBloodbank, updateBloodbank, deleteBloodbank,
-    getTask, editTask, getTaskById, addTask, deleteTask, editInstruction,
-    searchBloodbank
- } from "../controllers/userControllers.js";
+    getTask, editTask, getTaskById, addTask, deleteTask, editInstruction, 
+    searchBloodbank, searchDoctor, searchPatient, searchStaff, searchAppoinment, searchTask
+ } from "../controllers/userControllers.js"
 import { authUser } from "../middlewares/authUser.js"
-import { upload } from "../middlewares/multer.js";
+import { upload } from "../middlewares/multer.js"
 
 const router = e.Router();
 
@@ -54,7 +54,7 @@ router.get("/patient/:patientId", authUser, getPatientDetails)
 //delete patient
 router.delete("/patient/:patientId", authUser, deletePatient)
 //add patient
-router.post("/add-patient", authUser, addPatient)
+router.post("/addPatient", addPatient)
 // ----------------------------------Staff Management-----------------------------------
 //count staff
 router.get("/staff-count", authUser, countStaff)
@@ -110,5 +110,14 @@ router.delete("/delete-task/:taskId", authUser, deleteTask)
 // ----------------------------------General Instruction Management-----------------------------------
 //edit instruction
 router.post("/editInstructions/:taskId", authUser, editInstruction)
-
+// search doctor name
+router.get("/searchDoctor", authUser, searchDoctor)
+// search patient name
+router.get("/searchPatient", authUser, searchPatient)
+// search staff name
+router.get("/searchStaff", authUser, searchStaff)
+// search appoinment doctor/patient name
+router.get("/searchAppoinment", authUser, searchAppoinment)
+// search task by date
+router.get("/search-task", authUser, searchTask)
 export { router as userRouter }

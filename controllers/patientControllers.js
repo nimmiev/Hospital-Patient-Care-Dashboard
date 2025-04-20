@@ -111,6 +111,10 @@ export const patientLogin = async (req, res, next) => {
             return res.status(404).json({ message: "Patient not found" })
         }
 
+        if (patientExist.role !== "Patient") {
+            return res.status(403).json({ message: "Access denied: Not a patient." });
+        }
+
         //check match password with db
         const passwordMatch = bcrypt.compareSync(password, patientExist.password);
 
@@ -206,7 +210,7 @@ export const updatePatientProfile = async (req, res) => {
       profilepicUrl = result.secure_url;
     }
 
-    console.log("Profile pic URL:", profilepicUrl);
+    // console.log("Profile pic URL:", profilepicUrl);
 
     // Update User
     const userUpdate = await User.findById(patientId);

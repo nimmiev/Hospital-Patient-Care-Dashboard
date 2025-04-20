@@ -6,6 +6,7 @@ import { generateToken } from "../utils/token.js";
 import { Patient } from "../models/PatientModel.js";
 import mongoose from "mongoose";
 import { streamUpload } from "../config/cloudinary.js";
+import { v4 as uuidv4 } from "uuid";
 
 export const doctorSignup = async (req, res, next) => {
     try {
@@ -322,119 +323,148 @@ export const countAppoinment = async (req, res, next) => {
     }
 }
 
-export const getPatient = async (req, res, next) => {
-    try {
-        //doctorId
-        const doctorId = req.doctor.id
-        //fetch doctor appoinments
-        const appointments = await Appoinment.find({ doctorId })
-        // console.log(appointments);
-        if (!appointments.length) {
-            return res.status(404).json({ message: "No patients found for this doctor" })
-        }
-
-        // Extract patientId
-        const patientIds = [...new Set(appointments.map(app => app.patientId.toString()))]
-
-        const patients = await User.find({ _id: { $in: patientIds } }, "name email profilepic")
-
-        res.json({ data: patients, message: "Patients List" })
-
-    } catch (error) {
-        res.status(error.statusCode || 500).json({ message: error.message || "Internal Server Error" })
-        console.log(error);
-    }
-}
-
-// export const getPatientDetails = async (req, res, next) => {
+// export const getPatient = async (req, res, next) => {
 //     try {
-//         //fetch patientId and doctorId
-//         const { patientId } = req.params
+//         //doctorId
 //         const doctorId = req.doctor.id
 
-//         //validate patientId
-//         if (!patientId) {
-//             return res.status(400).json({ message: "Patient ID is required" })
+//         if (!doctorId) {
+//             return res.status(403).json({ error: "Access Denied" });
+//         }
+//         //fetch doctor appoinments
+//         const appointments = await Appoinment.find({ doctorId })
+//         // console.log(appointments);
+//         if (!appointments.length) {
+//             return res.status(404).json({ message: "No patients found for this doctor" })
 //         }
 
-//         //check patient exist or not
-//         const appointmentExists = await Appoinment.findOne({ doctorId, patientId })
+//         // Extract patientId
+//         const patientIds = [...new Set(appointments.map(app => app.patientId.toString()))]
 
-//         if (!appointmentExists) {
-//             return res.status(403).json({ message: "Unauthorized: This patient is not associated with this doctor" })
-//         }
+//         const patients = await User.find({ _id: { $in: patientIds } }, "name email profilepic")
 
-//         // console.log(appointmentExists)
-//         const patientDetail = await User.find({ patientId })
-//         //fetch corresponding patient details
-//         const patientDetails = await Patient.findOne({ userId: patientId });
-//         // console.log(patientDetails)
-//         if (!patientDetails) {
-//             return res.status(404).json({ message: "Patient not found" });
-//         }
+//         res.json({ data: patients, message: "Patients List" })
 
-//         res.json({ data: patientDetails, message: "Patient details fetched" });
-
-//         // const patientData = {
-//         //     name: patientsData.name,
-//         //     email: patientsData.email,
-//         //     phone: patientsData.phone,
-//         //     role: patientsData.role,
-//         //     profilepic: patientsData.profilepic,
-//         //     dateOfBirth: patientsData1.dateOfBirth,
-//         //     gender: patientsData1.gender,
-//         //     address: patientsData1.address,
-//         //     emergencyContact: patientsData1.emergencyContact,
-//         //     preExistingConditions: patientsData1.preExistingConditions,
-//         //     allergies: patientsData1.allergies,
-//         //     pastSurgeries: patientsData1.pastSurgeries,
-//         //     medications: patientsData1.medications,
-//         //     chronicDiseases: patientsData1.chronicDiseases,
-//         //     bloodType: patientsData1.bloodType,
-//         //     height: patientsData1.height,
-//         //     weight: patientsData1.weight,
-//         //     smoking: patientsData1.smoking,
-//         //     alcoholConsumption: patientsData1.alcoholConsumption,
-//         //     insurance: patientsData1.insurance,
-//         //     familyHistory: patientsData1.familyHistory,
-//         //     dietPreference: patientsData1.dietPreference,
-//         //     physicalActivityLevel: patientsData1.physicalActivityLevel,
-//         //     sleepPatterns: patientsData1.sleepPatterns,
-//         //     emergencyPreferences: patientsData1.emergencyPreferences
-//         // }
-
-//         // res.json({data:patientData, message:"Patient details fetched"})
 //     } catch (error) {
 //         res.status(error.statusCode || 500).json({ message: error.message || "Internal Server Error" })
 //         console.log(error);
 //     }
 // }
 
-export const getPatientDetails = async (req, res, next) => {
+export const getPatient = async (req, res, next) => {
     try {
-        const { patientId } = req.params;
         const doctorId = req.doctor.id;
 
-        if (!patientId) {
+        if (!doctorId) {
+            return res.status(403).json({ error: "Access Denied" });
+        }
+
+        // Fetch appointments
+        const appointments = await Appoinment.find({ doctorId });
+
+        if (!appointments.length) {
+            return res.status(404).json({ message: "No patients found for this doctor" });
+        }
+
+        // Unique patient user IDs
+        const patientIds = [...new Set(appointments.map(app => app.patientId.toString()))];
+
+        // Fetch users
+        const users = await User.find({ _id: { $in: patientIds } }, "name email profilepic");
+
+        // Fetch publicIds from Patient model
+        const patientsData = await Patient.find({ userId: { $in: patientIds } }, "userId publicId");
+
+        // Merge publicId into user data
+        const mergedPatients = users.map(user => {
+            const patient = patientsData.find(p => p.userId.toString() === user._id.toString());
+            return {
+                ...user.toObject(),
+                publicId: patient?.publicId || null
+            };
+        });
+
+        res.json({ data: mergedPatients, message: "Patients List" });
+
+    } catch (error) {
+        console.error(error);
+        res.status(error.statusCode || 500).json({ message: error.message || "Internal Server Error" });
+    }
+};
+
+// export const getPatientDetails = async (req, res, next) => {
+//     try {
+//         const { publicId  } = req.params;
+//         const doctorId = req.doctor.id;
+
+//         if (!publicId ) {
+//             return res.status(400).json({ message: "Patient ID is required" });
+//         }
+
+//         // Check if patient is associated with doctor
+//         const appointmentExists = await Appoinment.findOne({ doctorId, publicId  });
+//         if (!appointmentExists) {
+//             return res.status(403).json({ message: "Unauthorized: This patient is not associated with this doctor" });
+//         }
+
+//         // Fetch user details (basic info) excluding password
+//         const user = await User.findById(publicId ).select("-password");
+//         if (!user) {
+//             return res.status(404).json({ message: "User not found" });
+//         }
+
+//         // Fetch additional patient details
+//         const patientInfo = await Patient.findOne({ userId: patientId });
+//         if (!patientInfo) {
+//             return res.status(404).json({ message: "Patient details not found" });
+//         }
+
+//         // Merge user and patient info
+//         const patientData = {
+//             _id: user._id,
+//             name: user.name,
+//             email: user.email,
+//             phone: user.phone,
+//             role: user.role,
+//             profilepic: user.profilepic,
+//             ...patientInfo._doc,
+//         };
+
+//         return res.status(200).json({ data: patientData, message: "Patient details fetched" });
+
+//     } catch (error) {
+//         console.error(error);
+//         return res.status(error.statusCode || 500).json({ message: error.message || "Internal Server Error" });
+//     }
+// };
+
+export const getPatientDetails = async (req, res, next) => {
+    try {
+        const { publicId } = req.params;
+        const doctorId = req.doctor.id;
+
+        if (!publicId) {
             return res.status(400).json({ message: "Patient ID is required" });
         }
 
-        // Check if patient is associated with doctor
-        const appointmentExists = await Appoinment.findOne({ doctorId, patientId });
+        // Find the patient by publicId to get userId
+        const patientInfo = await Patient.findOne({ publicId });
+        if (!patientInfo) {
+            return res.status(404).json({ message: "Patient details not found" });
+        }
+
+        const userId = patientInfo.userId;
+
+        // Check if this patient is associated with the doctor
+        const appointmentExists = await Appoinment.findOne({ doctorId, patientId: userId });
         if (!appointmentExists) {
             return res.status(403).json({ message: "Unauthorized: This patient is not associated with this doctor" });
         }
 
-        // Fetch user details (basic info) excluding password
-        const user = await User.findById(patientId).select("-password");
+        // Fetch user details
+        const user = await User.findById(userId).select("-password");
         if (!user) {
             return res.status(404).json({ message: "User not found" });
-        }
-
-        // Fetch additional patient details
-        const patientInfo = await Patient.findOne({ userId: patientId });
-        if (!patientInfo) {
-            return res.status(404).json({ message: "Patient details not found" });
         }
 
         // Merge user and patient info
@@ -468,6 +498,7 @@ export const appoinmentList = async (req, res, next) => {
                 select: "name", // Only get the patient name
                 model: "User"
             })
+            .sort({ appointmentDate: -1 })
 
         res.status(200).json({ data: appoinment, message: "Appointment List" })
 
@@ -513,6 +544,7 @@ export const appointmentListForToday = async (req, res, next) => {
 
 export const addNotes = async (req, res, next) => {
     try {
+        // console.log("test add note")
         //fetch appoinmentId
         const { appoinmentId } = req.params;
         const { consultationNotes } = req.body;
@@ -551,6 +583,75 @@ export const cancelAppoinment = async (req, res, next) => {
     }
 }
 
+export const searchAppoinment = async (req, res) => {
+    try {
+        const { name } = req.query;
+
+        // 1. Find matching users by name (doctor or patient)
+        const users = await User.find({
+            name: { $regex: new RegExp(name, "i") }
+        }).select("_id");
+
+        const userIds = users.map(user => user._id);
+
+        // 2. Search appointments where either doctorId or patientId matches
+        const matchedAppointments = await Appoinment.find({
+            $or: [
+                { patientId: { $in: userIds } }
+            ]
+        })
+            .populate("doctorId", "name")   // Populate only the name field
+            .populate("patientId", "name"); // Populate only the name field
+
+        // 3. Format and send the result
+        const results = matchedAppointments.map(app => ({
+            _id: app._id,
+            appointmentDate: app.appointmentDate,
+            appointmentTime: app.appointmentTime,
+            status: app.status,
+            consultationNotes: app.consultationNotes,
+            patientName: app.patientId?.name || "N/A"
+        }));
+
+        res.status(200).json({ data: results });
+
+    } catch (error) {
+        console.error("Error searching appointment:", error);
+        res.status(500).json({ message: "Search failed", error: error.message });
+    }
+}
+
+export const searchDoctor = async (req, res) => {
+    try {
+        const { name } = req.query;
+        const results = await User.find({
+            name: { $regex: new RegExp(name, "i") }, // case-insensitive
+        });
+
+        res.status(200).json({ data: results });
+    } catch (error) {
+        res.status(500).json({ message: "Search error", error: error.message });
+    }
+}
+
+export const searchPatient = async (req, res) => {
+    try {
+        const { name } = req.query;
+
+        // Step 1: Find matching users
+        const users = await User.find({
+            role: "Patient",
+            name: { $regex: new RegExp(name, "i") }
+        });
+
+        res.status(200).json({ data: users });
+
+    } catch (error) {
+        console.error("Error in search Patient:", error);
+        res.status(500).json({ message: "Search failed", error: error.message });
+    }
+}
+
 export const secureData = async (req, res, next) => {
     try {
         // console.log(res)
@@ -561,3 +662,23 @@ export const secureData = async (req, res, next) => {
         console.log(error);
     }
 }
+
+export const addUUIDsToPatients = async (req, res) => {
+    try {
+      const patients = await Patient.find({ publicId: { $exists: false } });
+  
+      for (const patient of patients) {
+        patient.publicId = uuidv4();
+        await patient.save();
+        // console.log(`Updated: ${patient.name} - ${patient.publicId}`);
+      }
+  
+      return res.status(200).json({
+        message: 'All patients updated with UUIDs!',
+        updatedCount: patients.length,
+      });
+    } catch (err) {
+      console.error('Error updating patients:', err);
+      return res.status(500).json({ error: 'Something went wrong' });
+    }
+  };

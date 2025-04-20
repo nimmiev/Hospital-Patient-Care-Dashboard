@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { v4 as uuidv4 } from "uuid";
 
 const PatientSchema = new mongoose.Schema(
   {
@@ -46,7 +47,12 @@ const PatientSchema = new mongoose.Schema(
       primaryCarePhysician: { type: String },
       doNotResuscitate: { type: Boolean, default: false } //(if applicable)
     },
-    scheduled: { type:Boolean, default: false}
+    scheduled: { type:Boolean, default: false},
+    publicId: {
+      type: String,
+      default: uuidv4, //auto-generates UUID when creating
+      unique: true,
+    },
   },
   {
     timestamps: true
