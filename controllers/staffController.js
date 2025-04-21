@@ -89,21 +89,22 @@ export const staffLogin = async(req, res, next) => {
         if(!staffExist) {
             return res.status(404).json({message:"Staff not found"})
         }
-
+        
         if (staffExist.role !== "Staff") {
             return res.status(403).json({ message: "Access denied: Not a staff." });
         }
-          
+        
         //check match password with db
         const passwordMatch = bcrypt.compareSync(password, staffExist.password);
 
         if(!passwordMatch) {
             return res.status(401).json({message: "Invalid credentials"})
         }
-
+        
         if(!staffExist.isActive) {
             return res.status(401).json({message: "Staff account is not active"})
         }
+        
         //fetch staff using id and check approved
         const staffApprove = await Staff.findOne({userId: staffExist._id})
         // console.log(staffApprove)
@@ -112,10 +113,9 @@ export const staffLogin = async(req, res, next) => {
             return res.status(403).json({ message: "Account is pending admin approval." });
         }
 
-        
         const staffData = staffExist.toObject(); // Convert Mongoose document to plain object
         delete staffData.password; // Remove password field
-
+        
         //generate token
         const token = generateToken(staffData._id, "Staff");
         res.cookie('token', token);
@@ -419,14 +419,12 @@ export const searchBloodbank = async (req, res, next) => {
         // bloodgroup
         let bloodgroup = req.query.bloodgroup;
 
+        let filter = {};
         // check bloodgroup exists
         if (bloodgroup) {
-            bloodgroup = bloodgroup.replace(/ /g, "+"); // Convert space to +
-            // bloodgroup = decodeURIComponent(bloodgroup);   // Decode URI
+            // bloodgroup = bloodgroup.replace(/ /g, "+"); // Convert space to +
+            filter.bloodGroup = { $regex: `^${bloodgroup}$`, $options: 'i' };
         }
-
-        //create filter
-        let filter = bloodgroup ? { bloodGroup: bloodgroup } : {};
 
         // fetch bloodbanks
         const bloodbanks = await Bloodbank.find(filter);
