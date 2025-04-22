@@ -189,78 +189,78 @@ export const patientProfile = async (req, res, next) => {
 }
 
 export const updatePatientProfile = async (req, res) => {
-  try {
-    const patientId = req.patient.id;
+    try {
+        const patientId = req.patient.id;
 
-    // Extract form data
-    const {
-      name, email, phone, role,
-      dateOfBirth, gender, address, emergencyContact,
-      preExistingConditions, allergies, pastSurgeries, medications,
-      chronicDiseases, bloodType, height, weight, smoking,
-      alcoholConsumption, insurance, familyHistory, dietPreference,
-      physicalActivityLevel, sleepPatterns, emergencyPreferences,
-    } = req.body;
+        // Extract form data
+        const {
+            name, email, phone, role,
+            dateOfBirth, gender, address, emergencyContact,
+            preExistingConditions, allergies, pastSurgeries, medications,
+            chronicDiseases, bloodType, height, weight, smoking,
+            alcoholConsumption, insurance, familyHistory, dietPreference,
+            physicalActivityLevel, sleepPatterns, emergencyPreferences,
+        } = req.body;
 
-    let profilepicUrl = null;
+        let profilepicUrl = null;
 
-    // Upload new profile picture if provided
-    if (req.file) {
-      const result = await streamUpload(req.file.buffer);
-      profilepicUrl = result.secure_url;
+        // Upload new profile picture if provided
+        if (req.file) {
+            const result = await streamUpload(req.file.buffer);
+            profilepicUrl = result.secure_url;
+        }
+
+        // console.log("Profile pic URL:", profilepicUrl);
+
+        // Update User
+        const userUpdate = await User.findById(patientId);
+        userUpdate.name = name;
+        userUpdate.email = email;
+        userUpdate.phone = phone;
+        userUpdate.role = role;
+        if (profilepicUrl) userUpdate.profilepic = profilepicUrl;
+        await userUpdate.save();
+
+        // Update Patient
+        const patientUpdate = await Patient.findOneAndUpdate(
+            { userId: patientId },
+            {
+                dateOfBirth,
+                gender,
+                address,
+                emergencyContact: JSON.parse(emergencyContact),
+                preExistingConditions: JSON.parse(preExistingConditions),
+                allergies: JSON.parse(allergies),
+                pastSurgeries: JSON.parse(pastSurgeries),
+                medications: JSON.parse(medications),
+                chronicDiseases: JSON.parse(chronicDiseases),
+                bloodType,
+                height,
+                weight,
+                smoking: JSON.parse(smoking),
+                alcoholConsumption: JSON.parse(alcoholConsumption),
+                insurance: JSON.parse(insurance),
+                familyHistory: JSON.parse(familyHistory),
+                dietPreference,
+                physicalActivityLevel,
+                sleepPatterns,
+                emergencyPreferences: JSON.parse(emergencyPreferences),
+            },
+            { new: true }
+        );
+
+        res.json({
+            message: "Profile updated successfully",
+            data: {
+                ...userUpdate.toObject(),
+                ...patientUpdate.toObject(),
+            },
+        });
+
+    } catch (error) {
+        console.error("Profile update error:", error);
+        res.status(500).json({ message: "Failed to update profile" });
     }
-
-    // console.log("Profile pic URL:", profilepicUrl);
-
-    // Update User
-    const userUpdate = await User.findById(patientId);
-    userUpdate.name = name;
-    userUpdate.email = email;
-    userUpdate.phone = phone;
-    userUpdate.role = role;
-    if (profilepicUrl) userUpdate.profilepic = profilepicUrl;
-    await userUpdate.save();
-
-    // Update Patient
-    const patientUpdate = await Patient.findOneAndUpdate(
-      { userId: patientId },
-      {
-        dateOfBirth,
-        gender,
-        address,
-        emergencyContact: JSON.parse(emergencyContact),
-        preExistingConditions: JSON.parse(preExistingConditions),
-        allergies: JSON.parse(allergies),
-        pastSurgeries: JSON.parse(pastSurgeries),
-        medications: JSON.parse(medications),
-        chronicDiseases: JSON.parse(chronicDiseases),
-        bloodType,
-        height,
-        weight,
-        smoking: JSON.parse(smoking),
-        alcoholConsumption: JSON.parse(alcoholConsumption),
-        insurance: JSON.parse(insurance),
-        familyHistory: JSON.parse(familyHistory),
-        dietPreference,
-        physicalActivityLevel,
-        sleepPatterns,
-        emergencyPreferences: JSON.parse(emergencyPreferences),
-      },
-      { new: true }
-    );
-
-    res.json({
-      message: "Profile updated successfully",
-      data: {
-        ...userUpdate.toObject(),
-        ...patientUpdate.toObject(),
-      },
-    });
-
-  } catch (error) {
-    console.error("Profile update error:", error);
-    res.status(500).json({ message: "Failed to update profile" });
-  }
 };
 
 export const updatePatientPassword = async (req, res) => {
@@ -336,11 +336,11 @@ export const appoinmentList = async (req, res, next) => {
         const patientId = req.patient.id;
 
         const appoinment = await Appoinment.find({ patientId: patientId })
-        .populate({
-            path: "doctorId",
-            select: "name -_id", // Only get the doctor name and exclude _id
-            model: "User"
-        })
+            .populate({
+                path: "doctorId",
+                select: "name -_id", // Only get the doctor name and exclude _id
+                model: "User"
+            })
         const patient = await Patient.findOne({ userId: patientId });
         const scheduled = patient.scheduled;
 
@@ -392,15 +392,32 @@ export const appointmentListForToday = async (req, res, next) => {
 
 export const requestAppoinment = async (req, res, next) => {
     try {
-        //patientId
-        const patientId = req.patient.id;
-        // console.log(patientId);
+        //collect data
+        const { patientId, doctorId, appointmentDate, appointmentTime } = req.body;
 
-        //update schedule field value
-        const patientsData = await Patient.findOneAndUpdate({ userId: patientId }, { scheduled: true }, { new: true })
-        // console.log(patientsData);
+        // console.log({ patientId, doctorId })
+        //data vaildation
+        if (!patientId || !doctorId || !appointmentDate || !appointmentTime) {
+            return res.status(400).json({ message: "All fields required" })
+        }
 
-        res.json({ data: patientsData, message: "Appoinment requested" })
+        // Check if an appointment already exists for the same patient on the given date
+        const existingAppointment = await Appoinment.findOne({
+            patientId,
+            appointmentDate,
+            status: { $in: ["Scheduled", "Rescheduled", "Requested"] } // Only check active appointments
+        });
+
+        if (existingAppointment) {
+            return res.status(400).json({ message: "An appointment is already scheduled for this date" });
+        }
+
+        //save to db table
+        const newAppoinment = new Appoinment({ patientId, doctorId, appointmentDate, appointmentTime, status: "Requested" })
+        await newAppoinment.save()
+
+
+        res.json({ message: "A Schedule Requested" })
 
     } catch (error) {
         res.status(error.statusCode || 500).json({ message: error.message || "Internal Server Error" })
@@ -475,6 +492,29 @@ export const searchBloodbank = async (req, res, next) => {
 
         res.json({ data: bloodbanks, message: "Bloodbanks List" });
 
+    } catch (error) {
+        res.status(error.statusCode || 500).json({ message: error.message || "Internal Server Error" })
+        console.log(error);
+    }
+}
+
+export const getDoctors = async (req, res, next) => {
+    try {
+        // Step 1: Fetch all users with role "Doctor" and isActive true
+        const doctors = await User.find({ role: "Doctor", isActive: true }).sort({ createdAt: -1 });
+
+        // Step 2: For each user, find additional doctor details
+        const doctorList = await Promise.all(
+            doctors.map(async (doctor) => {
+                return {
+                    _id: doctor._id,
+                    name: doctor.name
+                };
+            })
+        );
+
+        // Step 4: Send response
+        res.json({ data: doctorList, message: "Doctors List" });
     } catch (error) {
         res.status(error.statusCode || 500).json({ message: error.message || "Internal Server Error" })
         console.log(error);

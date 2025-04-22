@@ -419,12 +419,14 @@ export const searchBloodbank = async (req, res, next) => {
         // bloodgroup
         let bloodgroup = req.query.bloodgroup;
 
-        let filter = {};
         // check bloodgroup exists
         if (bloodgroup) {
-            // bloodgroup = bloodgroup.replace(/ /g, "+"); // Convert space to +
-            filter.bloodGroup = { $regex: `^${bloodgroup}$`, $options: 'i' };
+            bloodgroup = bloodgroup.replace(/ /g, "+"); // Convert space to +
+            // bloodgroup = decodeURIComponent(bloodgroup);   // Decode URI
         }
+
+        //create filter
+        let filter = bloodgroup ? { bloodGroup: bloodgroup } : {};
 
         // fetch bloodbanks
         const bloodbanks = await Bloodbank.find(filter);

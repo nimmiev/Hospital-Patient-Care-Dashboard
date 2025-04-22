@@ -1,15 +1,16 @@
 import e from "express"
 import { userSignup, userLogin, userProfile, userProfileUpdate, userLogout, profileDeactivate, 
     countDoctor, getDoctor, getDoctorDetails, deleteDoctor, doctorApproval, doctorReject,
-    countPatient, getPatient, getPatientDetails, deletePatient, addPatient,
+    countPatient, getPatient, getPatientDetails, deletePatient, addPatient, PatientAcceptRequest,
     countStaff, getStaff, getStaffDetails, deleteStaff, staffApproval, staffReject,
     countAppoinment, getAppoinment, getAppointmentDetails, getRealtimeAppoinment, addAppoinment, updateAppoinment, cancelAppoinment,
     countBloodbank, getBloodbank, addBloodbank, updateBloodbank, deleteBloodbank,
-    getTask, editTask, getTaskById, addTask, deleteTask, editInstruction, 
-    searchBloodbank, searchDoctor, searchPatient, searchStaff, searchAppoinment, searchTask
+    getTask, editTask, getTaskById, addTask, deleteTask, editInstruction, getAdminList,
+    searchBloodbank, searchDoctor, searchPatient, searchStaff, searchAppoinment, searchTask, getMessage
  } from "../controllers/userControllers.js"
 import { authUser } from "../middlewares/authUser.js"
 import { upload } from "../middlewares/multer.js"
+import { Patient } from "../models/PatientModel.js";
 
 const router = e.Router();
 
@@ -120,4 +121,11 @@ router.get("/searchStaff", authUser, searchStaff)
 router.get("/searchAppoinment", authUser, searchAppoinment)
 // search task by date
 router.get("/search-task", authUser, searchTask)
+// fetch contact messages
+router.get("/message", authUser, getMessage)
+// fetch admin list
+router.get("/adminlist", authUser, getAdminList)
+// accept request
+router.put("/accept/:requestId", authUser, PatientAcceptRequest)
+
 export { router as userRouter }

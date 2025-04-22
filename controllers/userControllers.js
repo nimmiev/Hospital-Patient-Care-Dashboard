@@ -15,7 +15,7 @@ import mongoose from "mongoose";
 export const userSignup = async (req, res, next) => {
     try {
         // Collect user data
-        const { name, email, password, confirmPassword, phone, role } = req.body;
+        const { name, email, password, confirmPassword, phone } = req.body;
 
         // Validate required fields
         if (!name || !email || !password || !confirmPassword || !phone) {
@@ -54,17 +54,18 @@ export const userSignup = async (req, res, next) => {
         }
 
         // Save user to DB
-        const newUser = new User({ name, email, password: hashPassword, phone, role, profilepic });
+        const newUser = new User({ name, email, password: hashPassword, phone, role: "Admin", profilepic });
         await newUser.save();
 
         // Generate token
         const token = generateToken(newUser._id, "Admin");
-        res.cookie("token", token);
+        // res.cookie("token", token);
 
         // Remove password before sending response
         const { password: _, ...dataUser } = newUser.toObject();
 
-        res.json({ data: dataUser, message: "Signup success" });
+        res.status(201).json({ message: "Admin account created successfully" });
+        // res.json({ data: dataUser, message: "Signup success" });
 
     } catch (error) {
         res.status(error.statusCode || 500).json({ message: error.message || "Internal Server Error" });
@@ -854,7 +855,7 @@ export const addAppoinment = async (req, res, next) => {
         const existingAppointment = await Appoinment.findOne({
             patientId,
             appointmentDate,
-            status: { $in: ["Scheduled", "Rescheduled"] } // Only check active appointments
+            status: { $in: ["Scheduled", "Rescheduled", "Requested"] } // Only check active appointments
         });
 
         if (existingAppointment) {
@@ -1455,3 +1456,78 @@ export const deleteInstruction = async (req, res, next) => {
         console.log(error);
     }
 }
+
+export const getMessage = async (req, res, next) => {
+    try {
+        //user messages
+        const msg = await Contact.find().sort({ createdAt: -1 });
+
+        res.status(200).json({ data: msg });
+    } catch (error) {
+        res.status(error.statusCode || 500).json({ message: error.message || "Internal Server Error" })
+        console.log(error);
+    }
+}
+
+export const getAdminList = async (req, res, next) => {
+    try {
+
+        //userId
+        const userId = req.user.id;
+
+        //fetch admin
+        const admin = await User.find({ role: "Admin", isActive: true,  _id: { $ne: userId } })
+        .sort({ createdAt: -1 })
+        .select('-_id -password');
+
+        res.status(200).json({ data: admin });
+    } catch (error) {
+        res.status(error.statusCode || 500).json({ message: error.message || "Internal Server Error" })
+        console.log(error);
+    }
+}
+
+export const PatientAcceptRequest = async (req, res, next) => {
+    try {
+      const { requestId } = req.params;
+  
+      const appoinment = await Appoinment.findByIdAndUpdate(
+        { _id: requestId },
+        { status: "Scheduled" },
+        { new: true }
+      )
+        .populate({
+          path: "patientId",
+          select: "name -_id",
+          model: "User"
+        })
+        .populate({
+          path: "doctorId",
+          select: "name -_id",
+          model: "User"
+        });
+  
+      if (!appoinment) {
+        return res.status(404).json({ message: "Appointment not found" });
+      }
+  
+      const result = {
+        _id: appoinment._id,
+        patientName: appoinment.patientId.name,
+        doctorName: appoinment.doctorId.name,
+        appointmentDate: appoinment.appointmentDate,
+        appointmentTime: appoinment.appointmentTime,
+        status: appoinment.status,
+        consultationNotes: appoinment.consultationNotes
+      };
+  
+      res.json({ data: result, message: "Appointment Accepted" });
+  
+    } catch (error) {
+      console.log(error);
+      res.status(error.statusCode || 500).json({
+        message: error.message || "Internal Server Error"
+      });
+    }
+  };
+  
