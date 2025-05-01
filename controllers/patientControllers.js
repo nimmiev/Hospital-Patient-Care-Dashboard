@@ -188,81 +188,162 @@ export const patientProfile = async (req, res, next) => {
     }
 }
 
+// export const updatePatientProfile = async (req, res) => {
+//     try {
+//         const patientId = req.patient.id;
+
+//         // Extract form data
+//         const {
+//             name, email, phone, role,
+//             dateOfBirth, gender, address, emergencyContact,
+//             preExistingConditions, allergies, pastSurgeries, medications,
+//             chronicDiseases, bloodType, height, weight, smoking,
+//             alcoholConsumption, insurance, familyHistory, dietPreference,
+//             physicalActivityLevel, sleepPatterns, emergencyPreferences,
+//         } = req.body;
+
+//         let profilepicUrl = null;
+
+//         // Upload new profile picture if provided
+//         if (req.file) {
+//             const result = await streamUpload(req.file.buffer);
+//             profilepicUrl = result.secure_url;
+//         }
+
+//         // console.log("Profile pic URL:", profilepicUrl);
+
+//         // Update User
+//         const userUpdate = await User.findById(patientId);
+//         userUpdate.name = name;
+//         userUpdate.email = email;
+//         userUpdate.phone = phone;
+//         userUpdate.role = role;
+//         if (profilepicUrl) userUpdate.profilepic = profilepicUrl;
+//         await userUpdate.save();
+
+//         // Update Patient
+//         const patientUpdate = await Patient.findOneAndUpdate(
+//             { userId: patientId },
+//             {
+//                 dateOfBirth,
+//                 gender,
+//                 address,
+//                 emergencyContact: JSON.parse(emergencyContact),
+//                 preExistingConditions: JSON.parse(preExistingConditions),
+//                 allergies: JSON.parse(allergies),
+//                 pastSurgeries: JSON.parse(pastSurgeries),
+//                 medications: JSON.parse(medications),
+//                 chronicDiseases: JSON.parse(chronicDiseases),
+//                 bloodType,
+//                 height,
+//                 weight,
+//                 smoking: JSON.parse(smoking),
+//                 alcoholConsumption: JSON.parse(alcoholConsumption),
+//                 insurance: JSON.parse(insurance),
+//                 familyHistory: JSON.parse(familyHistory),
+//                 dietPreference,
+//                 physicalActivityLevel,
+//                 sleepPatterns,
+//                 emergencyPreferences: JSON.parse(emergencyPreferences),
+//             },
+//             { new: true }
+//         );
+
+//         res.json({
+//             message: "Profile updated successfully",
+//             data: {
+//                 ...userUpdate.toObject(),
+//                 ...patientUpdate.toObject(),
+//             },
+//         });
+
+//     } catch (error) {
+//         console.error("Profile update error:", error);
+//         res.status(500).json({ message: "Failed to update profile" });
+//     }
+// };
 export const updatePatientProfile = async (req, res) => {
     try {
-        const patientId = req.patient.id;
-
-        // Extract form data
-        const {
-            name, email, phone, role,
-            dateOfBirth, gender, address, emergencyContact,
-            preExistingConditions, allergies, pastSurgeries, medications,
-            chronicDiseases, bloodType, height, weight, smoking,
-            alcoholConsumption, insurance, familyHistory, dietPreference,
-            physicalActivityLevel, sleepPatterns, emergencyPreferences,
-        } = req.body;
-
-        let profilepicUrl = null;
-
-        // Upload new profile picture if provided
-        if (req.file) {
-            const result = await streamUpload(req.file.buffer);
-            profilepicUrl = result.secure_url;
+      const patientId = req.patient.id;
+  
+      // Extract form data
+      const {
+        name, email, phone, role,
+        dateOfBirth, gender, address, emergencyContact,
+        preExistingConditions, allergies, pastSurgeries, medications,
+        chronicDiseases, bloodType, height, weight, smoking,
+        alcoholConsumption, insurance, familyHistory, dietPreference,
+        physicalActivityLevel, sleepPatterns, emergencyPreferences,
+      } = req.body;
+  
+      let profilepicUrl = null;
+  
+      // Upload new profile picture if provided
+      if (req.file) {
+        const result = await streamUpload(req.file.buffer);
+        profilepicUrl = result.secure_url;
+      }
+  
+      // Update User
+      const userUpdate = await User.findById(patientId);
+      userUpdate.name = name;
+      userUpdate.email = email;
+      userUpdate.phone = phone;
+      userUpdate.role = role;
+      if (profilepicUrl) userUpdate.profilepic = profilepicUrl;
+      await userUpdate.save();
+  
+      // Parse JSON fields safely
+      const parseJsonSafely = (field) => {
+        try {
+          return JSON.parse(field);
+        } catch (error) {
+          return []; // Default to empty array if parsing fails
         }
-
-        // console.log("Profile pic URL:", profilepicUrl);
-
-        // Update User
-        const userUpdate = await User.findById(patientId);
-        userUpdate.name = name;
-        userUpdate.email = email;
-        userUpdate.phone = phone;
-        userUpdate.role = role;
-        if (profilepicUrl) userUpdate.profilepic = profilepicUrl;
-        await userUpdate.save();
-
-        // Update Patient
-        const patientUpdate = await Patient.findOneAndUpdate(
-            { userId: patientId },
-            {
-                dateOfBirth,
-                gender,
-                address,
-                emergencyContact: JSON.parse(emergencyContact),
-                preExistingConditions: JSON.parse(preExistingConditions),
-                allergies: JSON.parse(allergies),
-                pastSurgeries: JSON.parse(pastSurgeries),
-                medications: JSON.parse(medications),
-                chronicDiseases: JSON.parse(chronicDiseases),
-                bloodType,
-                height,
-                weight,
-                smoking: JSON.parse(smoking),
-                alcoholConsumption: JSON.parse(alcoholConsumption),
-                insurance: JSON.parse(insurance),
-                familyHistory: JSON.parse(familyHistory),
-                dietPreference,
-                physicalActivityLevel,
-                sleepPatterns,
-                emergencyPreferences: JSON.parse(emergencyPreferences),
-            },
-            { new: true }
-        );
-
-        res.json({
-            message: "Profile updated successfully",
-            data: {
-                ...userUpdate.toObject(),
-                ...patientUpdate.toObject(),
-            },
-        });
-
+      };
+  
+      // Update Patient
+      const patientUpdate = await Patient.findOneAndUpdate(
+        { userId: patientId },
+        {
+          dateOfBirth,
+          gender,
+          address,
+          emergencyContact: parseJsonSafely(emergencyContact),
+          preExistingConditions: parseJsonSafely(preExistingConditions),
+          allergies: parseJsonSafely(allergies),
+          pastSurgeries: parseJsonSafely(pastSurgeries),
+          medications: parseJsonSafely(medications),
+          chronicDiseases: parseJsonSafely(chronicDiseases),
+          bloodType,
+          height,
+          weight,
+          smoking: parseJsonSafely(smoking),
+          alcoholConsumption: parseJsonSafely(alcoholConsumption),
+          insurance: parseJsonSafely(insurance),
+          familyHistory: parseJsonSafely(familyHistory),
+          dietPreference,
+          physicalActivityLevel,
+          sleepPatterns,
+          emergencyPreferences: parseJsonSafely(emergencyPreferences),
+        },
+        { new: true }
+      );
+  
+      res.json({
+        message: "Profile updated successfully",
+        data: {
+          ...userUpdate.toObject(),
+          ...patientUpdate.toObject(),
+        },
+      });
+  
     } catch (error) {
-        console.error("Profile update error:", error);
-        res.status(500).json({ message: "Failed to update profile" });
+      console.error("Profile update error:", error);
+      res.status(500).json({ message: "Failed to update profile" });
     }
-};
-
+  };
+  
 export const updatePatientPassword = async (req, res) => {
     try {
         const { password } = req.body;

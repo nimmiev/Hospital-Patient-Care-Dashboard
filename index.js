@@ -15,7 +15,13 @@ connectDB();
 
 // CORS Setup
 // const allowlist = process.env.ALLOW_LIST ? process.env.ALLOW_LIST.split(",") : ["http://localhost:5173"];
-const allowlist = process.env.ALLOW_LIST ? process.env.ALLOW_LIST.split(",") : ["https://hospital-patient-care-dashboard-frontend.vercel.app"];
+// const allowlist = process.env.ALLOW_LIST ? process.env.ALLOW_LIST.split(",") : ["https://hospital-patient-care-dashboard-frontend.vercel.app"];
+const allowlist = process.env.ALLOW_LIST
+  ? process.env.ALLOW_LIST.split(",")
+  : [
+      "http://localhost:5173",
+      "https://hospital-patient-care-dashboard-frontend.vercel.app",
+    ];
 // console.log("Allowed Origins:", allowlist);
 
 const corsOptions = {
